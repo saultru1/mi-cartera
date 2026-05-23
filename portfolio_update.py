@@ -39,8 +39,12 @@ BENCHMARKS = [
     ("MSCI World", "URTH", "USD"),
 ]
 
-TOTAL_DEPOSITED = 8099.0
-START_DATE      = date(2022, 7, 25)
+TOTAL_DEPOSITED   = 8099.0    # Total EUR depositado en DEGIRO
+CASH_IN_ACCOUNT   = 1992.78   # Cash EUR en cuenta (actualizar manualmente)
+TOTAL_ACCOUNT_VAL = 8460.55   # Cuenta Completa DEGIRO (cartera + cash)
+# ⚠️  Actualiza CASH_IN_ACCOUNT y TOTAL_ACCOUNT_VAL cada vez que corras el script
+# con los valores que ves en DEGIRO → "Cuenta Completa" y "EUR"
+START_DATE        = date(2022, 7, 25)
 
 # Tipos de cambio: cuántos EUR vale 1 unidad de cada divisa
 FX_PAIRS = {
@@ -181,12 +185,17 @@ def main():
 
     # ── Portfolio aggregates ──
     valid     = [p for p in pos_data if p.get("ok")]
-    total_val = sum(p["val_eur"] for p in valid)
-    total_pnl = total_val - total_cost
-    pnl_pct   = total_pnl / total_cost * 100 if total_cost else 0
-    years     = (date.today() - START_DATE).days / 365.25
-    cagr      = ((1 + pnl_pct / 100) ** (1 / years) - 1) * 100 if years > 0 else 0
+    total_val = sum(p["val_eur"] for p in valid)  # solo posiciones abiertas
 
+    # ── Rentabilidad REAL: cuenta completa (cartera + cash) vs depositado ──
+    # Este es el número correcto — coincide con "Total B/P" de DEGIRO
+    real_pnl      = TOTAL_ACCOUNT_VAL - TOTAL_DEPOSITED
+    real_pnl_pct  = real_pnl / TOTAL_DEPOSITED * 100
+    years         = (date.today() - START_DATE).days / 365.25
+    cagr          = ((1 + real_pnl_pct / 100) ** (1 / years) - 1) * 100 if years > 0 else 0
+
+    # ── YTD y MTD: weighted average de posiciones abiertas ──
+    # (proxy razonable — las posiciones cerradas en el año no tienen precio actual)
     yn = yd = mn = md = 0.0
     for p in valid:
         bd = date.fromisoformat(p["buy_date"])
@@ -196,13 +205,18 @@ def main():
             mn += p["mtd_ret"] * p["cost_eur"]; md += p["cost_eur"]
 
     portfolio = {
-        "total_val": total_val, "total_cost": total_cost,
-        "total_pnl": total_pnl, "pnl_pct": pnl_pct, "cagr": cagr,
-        "ytd": yn / yd if yd > 0 else None,
-        "mtd": mn / md if md > 0 else None,
-        "updated": now.strftime("%d/%m/%Y %H:%M"),
-        "deposited": TOTAL_DEPOSITED,
-        "start_date": START_DATE.isoformat(),
+        "total_val":      total_val,
+        "total_cost":     total_cost,
+        "account_val":    TOTAL_ACCOUNT_VAL,
+        "cash":           CASH_IN_ACCOUNT,
+        "total_pnl":      real_pnl,
+        "pnl_pct":        real_pnl_pct,
+        "cagr":           cagr,
+        "ytd":            yn / yd if yd > 0 else None,
+        "mtd":            mn / md if md > 0 else None,
+        "updated":        now.strftime("%d/%m/%Y %H:%M"),
+        "deposited":      TOTAL_DEPOSITED,
+        "start_date":     START_DATE.isoformat(),
     }
 
     # ── Gráfico histórico diario: cartera vs benchmarks desde inicio ──
@@ -211,11 +225,15 @@ def main():
     generate_html(pos_data, bench_data, portfolio, chart_data)
 
     print(f"\n✅  portfolio_dashboard.html generado")
-    print(f"    Valor cartera : €{total_val:,.0f}")
-    print(f"    P&L total     : €{total_pnl:+,.0f}  ({pnl_pct:+.1f}%)")
-    print(f"    CAGR          : {cagr:+.1f}%")
-    if portfolio["ytd"]: print(f"    YTD           : {portfolio['ytd']:+.1f}%")
-    if portfolio["mtd"]: print(f"    MTD           : {portfolio['mtd']:+.1f}%")
+    print(f"    Valor posiciones: €{total_val:,.0f}")
+    print(f"    Cash en cuenta:   €{CASH_IN_ACCOUNT:,.2f}")
+    print(f"    Cuenta completa:  €{TOTAL_ACCOUNT_VAL:,.2f}")
+    print(f"    Total depositado: €{TOTAL_DEPOSITED:,.2f}")
+    print(f"    P&L real (€):     €{real_pnl:+,.2f}")
+    print(f"    P&L real (%):     {real_pnl_pct:+.2f}%  ← coincide con DEGIRO Total B/P")
+    print(f"    CAGR:             {cagr:+.2f}%")
+    if portfolio["ytd"]: print(f"    YTD:              {portfolio['ytd']:+.1f}%")
+    if portfolio["mtd"]: print(f"    MTD:              {portfolio['mtd']:+.1f}%")
 
 
 # ─────────────────────────────────────────────────────────
@@ -437,8 +455,8 @@ tr:hover td{{background:rgba(255,255,255,.02);}}
 
 <!-- KPIs -->
 <div class="krow">
-  <div class="kpi"><div class="lb">Valor cartera</div><div class="vl neu" id="kv">—</div><div class="sb">a precios actuales</div></div>
-  <div class="kpi"><div class="lb">P&L Total</div><div class="vl" id="kp">—</div><div class="sb" id="ks">desde inicio</div></div>
+  <div class="kpi"><div class="lb">Valor total cuenta</div><div class="vl neu" id="kv">—</div><div class="sb" id="kv-sub">cartera + cash DEGIRO</div></div>
+  <div class="kpi"><div class="lb">P&L Total</div><div class="vl" id="kp">—</div><div class="sb" id="ks">vs total depositado</div></div>
   <div class="kpi"><div class="lb">Rentab. YTD</div><div class="vl" id="ky">—</div><div class="sb">año en curso pond.</div></div>
   <div class="kpi"><div class="lb">Rentab. MTD</div><div class="vl" id="km">—</div><div class="sb">mes en curso pond.</div></div>
   <div class="kpi"><div class="lb">Anualizada</div><div class="vl" id="ka">—</div><div class="sb">CAGR desde jul 2022</div></div>
@@ -516,9 +534,10 @@ const sv   = (id,v) => {{const e=g(id);if(e)e.textContent=v;}};
 const cl   = v => v===null||v===undefined?'neu':v>=0?'pos':'neg';
 
 // ── KPIs ──
-sv('kv','€'+fmt(PORT.total_val));
+sv('kv','€'+fmt(PORT.account_val));
+g('kv-sub') && (g('kv-sub').textContent='cartera €'+fmt(PORT.total_val)+' + cash €'+fmt(PORT.cash));
 sv('kp',fE(PORT.total_pnl)); g('kp').className='vl '+cl(PORT.total_pnl);
-sv('ks',fp1(PORT.pnl_pct)+' s/ coste');
+sv('ks',fp1(PORT.pnl_pct)+' sobre depositado');
 if(PORT.ytd!==null){{sv('ky',fp1(PORT.ytd));g('ky').className='vl '+cl(PORT.ytd);}}
 if(PORT.mtd!==null){{sv('km',fp1(PORT.mtd));g('km').className='vl '+cl(PORT.mtd);}}
 sv('ka',fp1(PORT.cagr)); g('ka').className='vl '+cl(PORT.cagr);
