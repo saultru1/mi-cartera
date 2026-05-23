@@ -225,111 +225,128 @@ def main():
 def build_chart_data(pos_data, bench_hist, fx, start_date):
     """
     Construye series diarias de rentabilidad acumulada (base 100)
-    para la cartera y los benchmarks, desde start_date.
+    desde start_date para la cartera y los benchmarks.
+
+    La cartera se calcula como un portfolio con rebalanceo en cada
+    fecha de compra: antes de comprar una posición, su peso es 0;
+    desde su fecha de compra contribuye con su valor de mercado.
+    El NAV total se normaliza a 100 en la primera fecha disponible.
     """
     import pandas as pd
 
     print("\n  Construyendo gráfico histórico...", end=" ", flush=True)
 
-    # ── Benchmarks: normalizar a 100 desde start_date ──
-    bench_series = {}
-    for bname, btkr, _ in BENCHMARKS:
-        h = bench_hist.get(btkr)
-        if h is None:
-            continue
-        # Filtrar desde start_date
-        mask = h.index.date >= start_date
-        s = h[mask]["Close"].copy()
-        if s.empty:
-            continue
-        base = s.iloc[0]
-        bench_series[bname] = ((s / base) * 100).round(2)
-
-    # ── Cartera: construir NAV diario ponderado ──
-    # Para cada posición usamos su historial desde su fecha de compra
-    # ponderando por coste de adquisición
-    nav_frames = []
-    total_cost_all = sum(p["cost_eur"] for p in pos_data if p.get("ok"))
-
+    # ── 1. Descargar histórico de cada posición ──
+    pos_hist = {}
     for p in pos_data:
         if not p.get("ok"):
             continue
         tkr = p["ticker"]
         try:
-            h = yf.Ticker(tkr).history(period="3y")
+            h = yf.Ticker(tkr).history(period="5y")
             if h.empty:
                 continue
             h = h[["Close"]].copy()
             h.index = h.index.tz_localize(None)
+            pos_hist[tkr] = h
         except:
             continue
 
-        buy_date = date.fromisoformat(p["buy_date"])
-        # Usamos desde start_date o buy_date, lo que sea posterior
-        chart_start = max(start_date, buy_date)
-        mask = h.index.date >= chart_start
-        s = h[mask]["Close"].copy()
+    # ── 2. Construir índice de fechas común desde start_date ──
+    # Usamos el calendario de días hábiles de SPY como referencia
+    ref_h = bench_hist.get("SPY")
+    if ref_h is None or ref_h.empty:
+        print("sin datos benchmark")
+        return {}
+
+    mask = ref_h.index.date >= start_date
+    all_dates = ref_h[mask].index
+    if all_dates.empty:
+        return {}
+
+    # ── 3. Para cada fecha, calcular el valor de la cartera ──
+    # Método: para cada posición, su valor en una fecha dada es
+    # precio(fecha) * qty * fx_rate, solo si fecha >= buy_date.
+    # El valor total de la cartera en cada fecha es la suma de todas
+    # las posiciones activas en esa fecha.
+
+    portfolio_values = pd.Series(index=all_dates, dtype=float)
+
+    for dt in all_dates:
+        dt_date = dt.date()
+        total = 0.0
+        has_any = False
+        for p in pos_data:
+            if not p.get("ok"):
+                continue
+            buy_date = date.fromisoformat(p["buy_date"])
+            if dt_date < buy_date:
+                continue  # aún no comprada
+            h = pos_hist.get(p["ticker"])
+            if h is None:
+                continue
+            # Precio más reciente disponible hasta esta fecha
+            mask_price = h.index <= dt
+            sub = h[mask_price]
+            if sub.empty:
+                continue
+            price = float(sub["Close"].iloc[-1])
+            fxr = fx.get(p["cur"], 1.0)
+            val = price * fxr * p["qty"]
+            total += val
+            has_any = True
+        portfolio_values[dt] = total if has_any else None
+
+    portfolio_values = portfolio_values.dropna()
+    if portfolio_values.empty:
+        print("sin datos cartera")
+        return {}
+
+    # Normalizar a base 100 en la primera fecha
+    base = portfolio_values.iloc[0]
+    portfolio_norm = (portfolio_values / base * 100).round(2)
+
+    # ── 4. Benchmarks normalizados desde la misma primera fecha ──
+    bench_out = {}
+    first_dt = portfolio_norm.index[0]
+
+    for bname, btkr, _ in BENCHMARKS:
+        h = bench_hist.get(btkr)
+        if h is None:
+            continue
+        # Precio del benchmark en la primera fecha de la cartera
+        mask_base = h.index <= first_dt
+        sub_base = h[mask_base]
+        if sub_base.empty:
+            continue
+        base_price = float(sub_base["Close"].iloc[-1])
+
+        # Serie desde first_dt
+        mask_series = h.index >= first_dt
+        s = h[mask_series]["Close"].copy()
         if s.empty:
             continue
 
-        # Convertir a EUR
-        fxr = fx.get(p["cur"], 1.0)
-        s_eur = s * fxr * p["qty"]
+        # Reindexar al mismo calendario que la cartera y ffill
+        s = s.reindex(portfolio_norm.index, method="ffill")
+        s_norm = (s / base_price * 100).round(2)
+        bench_out[bname] = s_norm.dropna().tolist()
 
-        # Peso en la cartera = coste / total coste
-        weight = p["cost_eur"] / total_cost_all
+    dates  = [d.strftime("%Y-%m-%d") for d in portfolio_norm.index]
+    values = portfolio_norm.tolist()
 
-        # Valor base de esta posición en la primera fecha disponible
-        base_val = s_eur.iloc[0]
-        if base_val == 0:
-            continue
+    # Alinear longitudes
+    min_len = min(len(values), *[len(v) for v in bench_out.values()]) if bench_out else len(values)
+    dates  = dates[:min_len]
+    values = values[:min_len]
+    for k in bench_out:
+        bench_out[k] = bench_out[k][:min_len]
 
-        # Serie normalizada × peso
-        s_norm = (s_eur / base_val) * weight
-        nav_frames.append(s_norm)
-
-    if not nav_frames:
-        print("sin datos para gráfico")
-        return {}
-
-    # Alinear todas las series en un DataFrame común
-    nav_df = pd.concat(nav_frames, axis=1).sort_index()
-    nav_df = nav_df.ffill().dropna(how="all")
-
-    # NAV total = suma de contribuciones ponderadas
-    nav_total = nav_df.sum(axis=1)
-
-    # Normalizar a base 100 desde el primer día
-    if nav_total.empty or nav_total.iloc[0] == 0:
-        print("sin datos")
-        return {}
-
-    nav_norm = (nav_total / nav_total.iloc[0] * 100).round(2)
-
-    # Filtrar solo desde start_date
-    mask = nav_norm.index.date >= start_date
-    nav_norm = nav_norm[mask]
-
-    # Submuestrear a semanal si hay más de 500 puntos (mantiene legibilidad)
-    # Para mantener diario exacto, no submuestreamos
-    dates = [d.strftime("%Y-%m-%d") for d in nav_norm.index]
-    values = nav_norm.tolist()
-
-    # Benchmarks desde start_date, misma longitud
-    bench_out = {}
-    for bname, s in bench_series.items():
-        # Resample to same dates as portfolio
-        s_aligned = s.reindex(nav_norm.index, method="ffill")
-        # Renormalize to 100 at same start
-        if not s_aligned.empty and s_aligned.iloc[0] != 0:
-            s_norm = (s_aligned / s_aligned.iloc[0] * 100).round(2)
-            bench_out[bname] = s_norm.tolist()
-
-    print(f"OK ({len(dates)} días)")
+    print(f"OK ({len(dates)} días, cartera: {values[0]:.1f}→{values[-1]:.1f})")
 
     return {
-        "dates":     dates,
-        "portfolio": values,
+        "dates":      dates,
+        "portfolio":  values,
         "benchmarks": bench_out,
     }
 
@@ -475,7 +492,7 @@ tr:hover td{{background:rgba(255,255,255,.02);}}
   <table>
     <thead><tr>
       <th>Compañía</th><th>Div.</th><th>Acc.</th>
-      <th>Coste medio (€)</th><th>Precio actual</th><th>Precio (€)</th>
+      <th>Coste medio (€)</th><th>Precio actual (€)</th>
       <th>Valor (€)</th><th>P&amp;L (€)</th><th>P&amp;L %</th><th>Peso</th>
     </tr></thead>
     <tbody id="posB"></tbody>
@@ -657,8 +674,7 @@ g('posB').innerHTML = sr.map((p,i)=>{{
     <td><span class="badge">${{p.cur}}</span></td>
     <td class="mo" style="color:var(--mu)">${{p.qty}}</td>
     <td class="mo">€${{fmt(p.cost_eur/p.qty,2)}}</td>
-    <td class="mo" style="color:var(--mu);font-size:11px">${{priceNative}}</td>
-    <td class="mo">${{hp?'€'+fmt(p.price_eur,3):'—'}}</td>
+    <td class="mo">${{hp?'<span style=\"color:var(--tx)\">€'+fmt(p.price_eur,3)+'</span><br><span style=\"font-size:10px;color:var(--mu)\">'+fmt(p.price, p.cur==='GBX'?1:p.cur==='DKK'?2:3)+' '+p.cur+'</span>':'—'}}</td>
     <td class="mo">${{hp?'€'+fmt(p.val_eur):'—'}}</td>
     <td class="mo ${{pc}}" style="font-weight:600">${{hp?fE(p.pnl_eur):'—'}}</td>
     <td class="mo ${{pc}}">${{hp?fp(p.pnl_pct):'—'}}</td>
