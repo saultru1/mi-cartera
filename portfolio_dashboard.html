@@ -3,54 +3,42 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mi Cartera · 23/05/2026 10:12</title>
+<title>Mi Cartera · 23/05/2026 10:30</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-:root{
-  --bg:#0e1117;--bg2:#161b27;--bg3:#1e2535;--bg4:#252d40;
-  --border:rgba(255,255,255,0.07);--text:#dde1ea;--muted:#6b7585;
-  --blue:#4f8ef7;--green:#34d399;--red:#f87171;--amber:#fbbf24;--purple:#a78bfa;
-  --font:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono','Fira Mono',monospace;
-}
+:root{--bg:#0e1117;--bg2:#161b27;--bg3:#1e2535;--bg4:#252d40;--border:rgba(255,255,255,0.07);--text:#dde1ea;--muted:#6b7585;--blue:#4f8ef7;--green:#34d399;--red:#f87171;--amber:#fbbf24;--purple:#a78bfa;--font:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono','Fira Mono',monospace;}
 *{margin:0;padding:0;box-sizing:border-box;}
 html{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;}
 body{min-height:100vh;padding:28px 32px;max-width:1380px;margin:0 auto;}
 .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;}
 .hdr h1{font-size:20px;font-weight:600;letter-spacing:-.5px;color:#fff;}
 .hdr p{color:var(--muted);font-size:12px;margin-top:4px;}
-.ts{font-size:11px;color:var(--muted);text-align:right;}
+.ts{font-size:11px;color:var(--muted);text-align:right;line-height:1.8;}
 .badge-ok{display:inline-block;background:rgba(52,211,153,.15);color:var(--green);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:500;}
-
 .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;}
 .kpi{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
 .kpi .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;}
 .kpi .val{font-size:22px;font-weight:700;font-family:var(--mono);letter-spacing:-1px;line-height:1;}
 .kpi .sub{font-size:11px;color:var(--muted);margin-top:6px;}
 .pos{color:var(--green);}.neg{color:var(--red);}.neu{color:var(--text);}
-
 .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;}
 .card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px;}
 .card-sub{font-size:11px;color:var(--muted);font-weight:400;margin-left:6px;}
-
 .perf-row{display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px;}
 .comp-bars{display:flex;flex-direction:column;gap:12px;}
 .bar-hdr{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;}
-.bar-name{color:var(--muted);}
-.bar-val{font-weight:600;font-family:var(--mono);}
+.bar-name{color:var(--muted);}.bar-val{font-weight:600;font-family:var(--mono);}
 .bar-track{height:7px;background:var(--bg4);border-radius:4px;overflow:hidden;}
 .bar-fill{height:100%;border-radius:4px;}
-
 .bench-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 .bench-item{background:var(--bg3);border-radius:8px;padding:12px 14px;}
 .bn{font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:500;}
 .bv{font-size:17px;font-weight:700;font-family:var(--mono);}
 .bs{font-size:11px;color:var(--muted);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;}
-
 .pie-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:12px;font-size:11px;color:var(--muted);}
 .pie-legend span{display:flex;align-items:center;gap:5px;}
 .ldot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
-
 .pos-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
 .pos-card-title{font-size:13px;font-weight:600;margin-bottom:16px;display:flex;justify-content:space-between;}
 .hint{font-size:11px;color:var(--muted);font-weight:400;}
@@ -71,7 +59,6 @@ tr:hover td{background:rgba(255,255,255,.02);}
 </style>
 </head>
 <body>
-
 <div class="hdr">
   <div>
     <h1>📊 Mi Cartera · DEGIRO</h1>
@@ -79,11 +66,10 @@ tr:hover td{background:rgba(255,255,255,.02);}
   </div>
   <div class="ts">
     Última actualización<br>
-    <strong style="color:var(--text)">23/05/2026 10:12</strong><br><br>
-    <small>Ejecuta portfolio_update.py<br>para actualizar</small>
+    <strong style="color:var(--text)">23/05/2026 10:30</strong><br>
+    <small>Ejecuta portfolio_update.py para refrescar</small>
   </div>
 </div>
-
 <div class="kpi-row">
   <div class="kpi"><div class="lbl">Valor cartera</div><div class="val neu" id="kv"></div><div class="sub">a precios actuales</div></div>
   <div class="kpi"><div class="lbl">P&L Total</div><div class="val" id="kpnl"></div><div class="sub" id="kpnl-sub"></div></div>
@@ -91,7 +77,6 @@ tr:hover td{background:rgba(255,255,255,.02);}
   <div class="kpi"><div class="lbl">Rentab. MTD</div><div class="val" id="kmtd"></div><div class="sub" id="kmtd-sub"></div></div>
   <div class="kpi"><div class="lbl">Anualizada</div><div class="val" id="kanual"></div><div class="sub">CAGR desde jul 2022</div></div>
 </div>
-
 <div class="charts-row">
   <div class="card">
     <div class="card-title">Peso por posición <span class="card-sub">% sobre coste adquisición</span></div>
@@ -103,7 +88,6 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div id="pnlWrap" style="position:relative;height:260px;"><canvas id="pnlC" role="img" aria-label="P&L por posición"></canvas></div>
   </div>
 </div>
-
 <div class="perf-row">
   <div class="card">
     <div class="card-title">Rentabilidades comparadas</div>
@@ -114,11 +98,10 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div class="bench-grid" id="benchGrid"></div>
   </div>
 </div>
-
 <div class="pos-card">
   <div class="pos-card-title">
-    Posiciones abiertas · 20 valores
-    <span class="hint">Yahoo Finance · python portfolio_update.py para actualizar</span>
+    Posiciones abiertas · 17 valores
+    <span class="hint">Yahoo Finance · ejecuta portfolio_update.py para actualizar</span>
   </div>
   <table>
     <thead><tr>
@@ -129,60 +112,50 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <tbody id="posBody"></tbody>
   </table>
 </div>
-
 <div class="footer">
-  Datos: <strong>Yahoo Finance (yfinance)</strong> · Script: <strong>portfolio_update.py</strong> · Generado: 23/05/2026 10:12
+  Datos: <strong>Yahoo Finance (yfinance)</strong> · Generado: 23/05/2026 10:30
 </div>
-
 <script>
-const POS   = [{"name": "Adobe Inc", "ticker": "ADBE", "qty": 7, "cost_eur": 1480.47, "cur": "USD", "buy_date": "2025-11-19", "price": 244.75999450683594, "price_eur": 210.90968378683326, "val_eur": 1476.3677865078328, "pnl_eur": -4.102213492167266, "pnl_pct": -0.27708859295813265, "ytd_ret": -26.564655424209, "mtd_ret": -2.373264747195328, "ok": true, "color": "#4f8ef7"}, {"name": "QinetiQ Group PLC", "ticker": "QQ.L", "qty": 150, "cost_eur": 711.27, "cur": "GBX", "buy_date": "2026-05-12", "price": 477.0, "price_eur": 5.521600358671104, "val_eur": 828.2400538006656, "pnl_eur": 116.9700538006656, "pnl_pct": 16.445239332555232, "ytd_ret": 7.3422955470249756, "mtd_ret": 7.723580205476761, "ok": true, "color": "#34d399"}, {"name": "Microsoft Corp", "ticker": "MSFT", "qty": 2, "cost_eur": 638.99, "cur": "USD", "buy_date": "2026-03-26", "price": 418.57000732421875, "price_eur": 360.68176936054743, "val_eur": 721.3635387210949, "pnl_eur": 82.37353872109486, "pnl_pct": 12.891209364950134, "ytd_ret": -11.102038488287006, "mtd_ret": 1.2152738317853564, "ok": true, "color": "#a78bfa"}, {"name": "Greggs PLC", "ticker": "GRG.L", "qty": 16, "cost_eur": 445.9, "cur": "GBX", "buy_date": "2025-03-04", "price": 1726.0, "price_eur": 19.979627293640092, "val_eur": 319.6740366982415, "pnl_eur": -126.2259633017585, "pnl_pct": -28.308132608602488, "ytd_ret": 2.9549486470089503, "mtd_ret": 13.814704912627763, "ok": true, "color": "#fbbf24"}, {"name": "Wendy's Co", "ticker": "WEN", "qty": 37, "cost_eur": 444.68, "cur": "USD", "buy_date": "2025-01-16", "price": 7.809999942779541, "price_eur": 6.729876839659815, "val_eur": 249.00544306741318, "pnl_eur": -195.67455693258682, "pnl_pct": -44.00345347948791, "ytd_ret": -2.626704280897738, "mtd_ret": 16.56716664348906, "ok": true, "color": "#f87171"}, {"name": "Italian Sea Group", "ticker": "TISG.MI", "qty": 46, "cost_eur": 418.41, "cur": "EUR", "buy_date": "2024-06-18", "price": 1.399999976158142, "price_eur": 1.399999976158142, "val_eur": 64.39999890327454, "pnl_eur": -354.0100010967255, "pnl_pct": -84.60839872295726, "ytd_ret": -65.55965666786668, "mtd_ret": -14.004916577662435, "ok": true, "color": "#2dd4bf"}, {"name": "PayPal Holdings", "ticker": "PYPL", "qty": 7, "cost_eur": 351.94, "cur": "USD", "buy_date": "2026-01-16", "price": 44.22999954223633, "price_eur": 38.11298997673538, "val_eur": 266.79092983714764, "pnl_eur": -85.14907016285235, "pnl_pct": -24.194200762303904, "ytd_ret": -23.694676541288523, "mtd_ret": -12.3116559348682, "ok": true, "color": "#fb923c"}, {"name": "FactSet Research", "ticker": "FDS", "qty": 2, "cost_eur": 349.79, "cur": "USD", "buy_date": "2026-02-05", "price": 232.0, "price_eur": 199.9143967016992, "val_eur": 399.8287934033984, "pnl_eur": 50.03879340339836, "pnl_pct": 14.305381344063111, "ytd_ret": -18.147713362555567, "mtd_ret": 1.9421733603054117, "ok": true, "color": "#c084fc"}, {"name": "Novo Nordisk B", "ticker": "NOVO-B.CO", "qty": 5, "cost_eur": 245.83, "cur": "DKK", "buy_date": "2025-07-29", "price": 289.0, "price_eur": 38.67876626567536, "val_eur": 193.3938313283768, "pnl_eur": -52.43616867162322, "pnl_pct": -21.330256141082543, "ytd_ret": -9.4723126786724, "mtd_ret": 3.9568345323741005, "ok": true, "color": "#86efac"}, {"name": "NICE Ltd ADR", "ticker": "NICE", "qty": 2, "cost_eur": 235.02, "cur": "USD", "buy_date": "2025-09-02", "price": 94.45999908447266, "price_eur": 81.39617986816987, "val_eur": 162.79235973633973, "pnl_eur": -72.22764026366028, "pnl_pct": -30.732550533427062, "ytd_ret": -15.615510966317252, "mtd_ret": -16.3330400285065, "ok": true, "color": "#67e8f9"}, {"name": "FRP Advisory", "ticker": "FRP.L", "qty": 150, "cost_eur": 221.76, "cur": "GBX", "buy_date": "2025-06-17", "price": 112.0, "price_eur": 1.2964763944888125, "val_eur": 194.47145917332188, "pnl_eur": -27.288540826678116, "pnl_pct": -12.305438684468847, "ytd_ret": -17.633594305027504, "mtd_ret": -5.277100696971668, "ok": true, "color": "#fda4af"}, {"name": "Nomad Foods", "ticker": "NOMD", "qty": 18, "cost_eur": 218.49, "cur": "USD", "buy_date": "2025-09-10", "price": 10.270000457763672, "price_eur": 8.84965924844827, "val_eur": 159.29386647206888, "pnl_eur": -59.196133527931124, "pnl_pct": -27.09329192545706, "ytd_ret": -12.860178099371938, "mtd_ret": 9.847998160644526, "ok": true, "color": "#a3e635"}, {"name": "Evolution AB", "ticker": "EVO.ST", "qty": 3, "cost_eur": 218.04, "cur": "SEK", "buy_date": "2024-12-23", "price": 700.0, "price_eur": 64.42883646593046, "val_eur": 193.28650939779138, "pnl_eur": -24.753490602208615, "pnl_pct": -11.35272913328225, "ytd_ret": 12.14354154287133, "mtd_ret": 9.580465462824305, "ok": true, "color": "#fdba74"}, {"name": "Dusk Group Ltd", "ticker": "DSK.AX", "qty": 5, "cost_eur": 210.7, "cur": "AUD", "buy_date": "2023-05-29", "price": 0.7200000286102295, "price_eur": 0.442399037354377, "val_eur": 2.211995186771885, "pnl_eur": -208.48800481322812, "pnl_pct": -98.95016839735554, "ytd_ret": -9.354262593275182, "mtd_ret": -5.882347441324486, "ok": true, "color": "#7dd3fc"}, {"name": "Euronet Worldwide", "ticker": "EEFT", "qty": 3, "cost_eur": 205.82, "cur": "USD", "buy_date": "2025-10-28", "price": 66.19999694824219, "price_eur": 57.044536429147264, "val_eur": 171.1336092874418, "pnl_eur": -34.68639071255819, "pnl_pct": -16.852779473597412, "ytd_ret": -10.661270834759769, "mtd_ret": -10.55263472849572, "ok": true, "color": "#d8b4fe"}, {"name": "Enea SA", "ticker": "ENE.WA", "qty": 80, "cost_eur": 205.32, "cur": "PLN", "buy_date": "2022-11-07", "price": 19.399999618530273, "price_eur": 4.581090075361847, "val_eur": 366.48720602894775, "pnl_eur": 161.16720602894776, "pnl_pct": 78.49561953484695, "ytd_ret": 7.777775658501519, "mtd_ret": 2.105261150159334, "ok": true, "color": "#6ee7b7"}, {"name": "Alphabet Inc A", "ticker": "GOOGL", "qty": 2, "cost_eur": 205.23, "cur": "USD", "buy_date": "2022-09-23", "price": 382.9700012207031, "price_eur": 330.00524460726666, "val_eur": 660.0104892145333, "pnl_eur": 454.7804892145333, "pnl_pct": 221.59552171443423, "ytd_ret": 21.60545239719752, "mtd_ret": -0.7052299005640795, "ok": true, "color": "#fcd34d"}, {"name": "Novo Nordisk ADR", "ticker": "NVO", "qty": 6, "cost_eur": 202.9, "cur": "USD", "buy_date": "2026-03-16", "price": 44.959999084472656, "price_eur": 38.74203057190215, "val_eur": 232.4521834314129, "pnl_eur": 29.552183431412885, "pnl_pct": 14.564900656191663, "ytd_ret": -11.034739872346185, "mtd_ret": 2.4612533957803087, "ok": true, "color": "#f9a8d4"}, {"name": "Brown-Forman B", "ticker": "BF-B", "qty": 3, "cost_eur": 91.59, "cur": "USD", "buy_date": "2025-02-07", "price": 26.200000762939453, "price_eur": 22.576540284944393, "val_eur": 67.72962085483317, "pnl_eur": -23.86037914516683, "pnl_pct": -26.05129287604196, "ytd_ret": 1.1545883894011866, "mtd_ret": 2.5440373592499843, "ok": true, "color": "#94a3b8"}, {"name": "Power REIT", "ticker": "PW", "qty": 47, "cost_eur": 10.77, "cur": "USD", "buy_date": "2022-12-27", "price": 0.5400000214576721, "price_eur": 0.4653180108129963, "val_eur": 21.869946508210827, "pnl_eur": 11.099946508210827, "pnl_pct": 103.06357017837351, "ytd_ret": -39.32583931042917, "mtd_ret": -28.94736470608165, "ok": true, "color": "#cbd5e1"}];
+const POS   = [{"name": "Adobe Inc", "ticker": "ADBE", "qty": 7, "cost_eur": 1480.47, "cur": "USD", "buy_date": "2025-11-19", "price": 244.75999450683594, "price_eur": 210.90968378683326, "val_eur": 1476.3677865078328, "pnl_eur": -4.102213492167266, "pnl_pct": -0.27708859295813265, "ytd_ret": -26.564655424209, "mtd_ret": -2.373264747195328, "ok": true, "color": "#4f8ef7"}, {"name": "ADR on Nice Ltd", "ticker": "NICE", "qty": 2, "cost_eur": 235.02, "cur": "USD", "buy_date": "2025-09-02", "price": 94.45999908447266, "price_eur": 81.39617986816987, "val_eur": 162.79235973633973, "pnl_eur": -72.22764026366028, "pnl_pct": -30.732550533427062, "ytd_ret": -15.615510966317252, "mtd_ret": -16.3330400285065, "ok": true, "color": "#34d399"}, {"name": "ADR on Novo Nordisk A/S", "ticker": "NVO", "qty": 6, "cost_eur": 202.9, "cur": "USD", "buy_date": "2026-03-16", "price": 44.959999084472656, "price_eur": 38.74203057190215, "val_eur": 232.4521834314129, "pnl_eur": 29.552183431412885, "pnl_pct": 14.564900656191663, "ytd_ret": -11.034739872346185, "mtd_ret": 2.4612533957803087, "ok": true, "color": "#a78bfa"}, {"name": "Alphabet Inc Class A", "ticker": "GOOGL", "qty": 2, "cost_eur": 205.23, "cur": "USD", "buy_date": "2022-09-23", "price": 382.9700012207031, "price_eur": 330.00524460726666, "val_eur": 660.0104892145333, "pnl_eur": 454.7804892145333, "pnl_pct": 221.59552171443423, "ytd_ret": 21.60545239719752, "mtd_ret": -0.7052299005640795, "ok": true, "color": "#fbbf24"}, {"name": "Brown-Forman Corp Class B", "ticker": "BF-B", "qty": 3, "cost_eur": 91.59, "cur": "USD", "buy_date": "2025-02-07", "price": 26.200000762939453, "price_eur": 22.576540284944393, "val_eur": 67.72962085483317, "pnl_eur": -23.86037914516683, "pnl_pct": -26.05129287604196, "ytd_ret": 1.1545883894011866, "mtd_ret": 2.5440373592499843, "ok": true, "color": "#f87171"}, {"name": "Euronet Worldwide Inc", "ticker": "EEFT", "qty": 3, "cost_eur": 205.82, "cur": "USD", "buy_date": "2025-10-28", "price": 66.19999694824219, "price_eur": 57.044536429147264, "val_eur": 171.1336092874418, "pnl_eur": -34.68639071255819, "pnl_pct": -16.852779473597412, "ytd_ret": -10.661270834759769, "mtd_ret": -10.55263472849572, "ok": true, "color": "#2dd4bf"}, {"name": "Evolution AB", "ticker": "EVO.ST", "qty": 3, "cost_eur": 218.04, "cur": "EUR", "buy_date": "2024-12-23", "price": 700.0, "price_eur": 700.0, "val_eur": 2100.0, "pnl_eur": 1881.96, "pnl_pct": 863.1260319207485, "ytd_ret": 12.14354154287133, "mtd_ret": 9.580465462824305, "ok": true, "color": "#fb923c"}, {"name": "Factset Research Systems", "ticker": "FDS", "qty": 2, "cost_eur": 349.79, "cur": "USD", "buy_date": "2026-02-05", "price": 232.0, "price_eur": 199.9143967016992, "val_eur": 399.8287934033984, "pnl_eur": 50.03879340339836, "pnl_pct": 14.305381344063111, "ytd_ret": -18.147713362555567, "mtd_ret": 1.9421733603054117, "ok": true, "color": "#c084fc"}, {"name": "FRP Advisory Group PLC", "ticker": "FRP.L", "qty": 150, "cost_eur": 221.76, "cur": "GBX", "buy_date": "2025-06-17", "price": 112.0, "price_eur": 1.2964763944888125, "val_eur": 194.47145917332188, "pnl_eur": -27.288540826678116, "pnl_pct": -12.305438684468847, "ytd_ret": -17.633594305027504, "mtd_ret": -5.277100696971668, "ok": true, "color": "#86efac"}, {"name": "Greggs PLC", "ticker": "GRG.L", "qty": 22, "cost_eur": 445.9, "cur": "GBX", "buy_date": "2025-03-04", "price": 1726.0, "price_eur": 19.979627293640092, "val_eur": 439.55180046008206, "pnl_eur": -6.348199539917914, "pnl_pct": -1.4236823368284177, "ytd_ret": 2.9549486470089503, "mtd_ret": 13.814704912627763, "ok": true, "color": "#67e8f9"}, {"name": "Italian Sea Group SpA", "ticker": "TISG.MI", "qty": 47, "cost_eur": 418.41, "cur": "EUR", "buy_date": "2024-06-18", "price": 1.399999976158142, "price_eur": 1.399999976158142, "val_eur": 65.79999887943268, "pnl_eur": -352.61000112056735, "pnl_pct": -84.27379869519545, "ytd_ret": -65.55965666786668, "mtd_ret": -14.004916577662435, "ok": true, "color": "#fda4af"}, {"name": "Microsoft Corp", "ticker": "MSFT", "qty": 2, "cost_eur": 638.99, "cur": "USD", "buy_date": "2026-03-26", "price": 418.57000732421875, "price_eur": 360.68176936054743, "val_eur": 721.3635387210949, "pnl_eur": 82.37353872109486, "pnl_pct": 12.891209364950134, "ytd_ret": -11.102038488287006, "mtd_ret": 1.2152738317853564, "ok": true, "color": "#a3e635"}, {"name": "Nomad Foods Ltd", "ticker": "NOMD", "qty": 18, "cost_eur": 218.49, "cur": "USD", "buy_date": "2025-09-10", "price": 10.270000457763672, "price_eur": 8.84965924844827, "val_eur": 159.29386647206888, "pnl_eur": -59.196133527931124, "pnl_pct": -27.09329192545706, "ytd_ret": -12.860178099371938, "mtd_ret": 9.847998160644526, "ok": true, "color": "#fdba74"}, {"name": "Novo Nordisk A/S Class B", "ticker": "NOVO-B.CO", "qty": 5, "cost_eur": 245.83, "cur": "DKK", "buy_date": "2025-07-29", "price": 289.0, "price_eur": 38.67876626567536, "val_eur": 193.3938313283768, "pnl_eur": -52.43616867162322, "pnl_pct": -21.330256141082543, "ytd_ret": -9.4723126786724, "mtd_ret": 3.9568345323741005, "ok": true, "color": "#7dd3fc"}, {"name": "PayPal Holdings Inc", "ticker": "PYPL", "qty": 7, "cost_eur": 351.94, "cur": "USD", "buy_date": "2026-01-16", "price": 44.22999954223633, "price_eur": 38.11298997673538, "val_eur": 266.79092983714764, "pnl_eur": -85.14907016285235, "pnl_pct": -24.194200762303904, "ytd_ret": -23.694676541288523, "mtd_ret": -12.3116559348682, "ok": true, "color": "#d8b4fe"}, {"name": "QinetiQ Group PLC", "ticker": "QQ.L", "qty": 150, "cost_eur": 711.27, "cur": "GBX", "buy_date": "2026-05-12", "price": 477.0, "price_eur": 5.521600358671104, "val_eur": 828.2400538006656, "pnl_eur": 116.9700538006656, "pnl_pct": 16.445239332555232, "ytd_ret": 7.3422955470249756, "mtd_ret": 7.723580205476761, "ok": true, "color": "#6ee7b7"}, {"name": "Wendy's Co", "ticker": "WEN", "qty": 37, "cost_eur": 444.68, "cur": "USD", "buy_date": "2025-01-16", "price": 7.809999942779541, "price_eur": 6.729876839659815, "val_eur": 249.00544306741318, "pnl_eur": -195.67455693258682, "pnl_pct": -44.00345347948791, "ytd_ret": -2.626704280897738, "mtd_ret": 16.56716664348906, "ok": true, "color": "#fcd34d"}];
 const BENCH = [{"name": "S&P 500", "ticker": "SPY", "price": 745.6400146484375, "ytd": 9.442214572053825, "mtd": 3.4677012957424878}, {"name": "MSCI World", "ticker": "URTH", "price": 202.5399932861328, "ytd": 8.594713018829319, "mtd": 2.937588402451426}];
-const PORT  = {"total_val": 6750.803657559119, "total_cost": 7112.92, "total_pnl": -362.11634244088145, "pnl_pct": -5.09096605108565, "cagr": -1.35587315787693, "ytd": -15.465619512032468, "mtd": -0.19089832536056878, "updated": "23/05/2026 10:12", "deposited": 8099.0};
-
+const PORT  = {"total_val": 8388.225764175395, "total_cost": 6686.13, "total_pnl": 1702.0957641753948, "pnl_pct": 25.457114417090228, "cagr": 6.104421256890369, "ytd": -16.77519024888433, "mtd": -0.01726279111537875, "updated": "23/05/2026 10:30", "deposited": 8099.0};
 const fmt  = (n,d=0) => (+n).toLocaleString('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d});
 const fp   = v => (v>=0?'+':'')+v.toFixed(1)+'%';
 const fmtE = v => (v>=0?'':'−')+'€'+fmt(Math.abs(v));
 const g    = id => document.getElementById(id);
 const sv   = (id,v) => { const e=g(id); if(e) e.textContent=v; };
-const cls  = (v,neu) => v===null||v===undefined ? (neu||'neu') : v>=0 ? 'pos' : 'neg';
+const cls  = v => v===null||v===undefined?'neu':v>=0?'pos':'neg';
 
-// KPIs
-sv('kv', '€'+fmt(PORT.total_val));
-sv('kpnl', fmtE(PORT.total_pnl));
-g('kpnl').className = 'val '+cls(PORT.total_pnl);
-sv('kpnl-sub', fp(PORT.pnl_pct)+' sobre coste');
-if(PORT.ytd!==null){ sv('kytd', fp(PORT.ytd)); g('kytd').className='val '+cls(PORT.ytd); }
-else { sv('kytd','—'); g('kytd').className='val muted'; }
-if(PORT.mtd!==null){ sv('kmtd', fp(PORT.mtd)); g('kmtd').className='val '+cls(PORT.mtd); }
-else { sv('kmtd','—'); g('kmtd').className='val muted'; }
-sv('kanual', fp(PORT.cagr)); g('kanual').className='val '+cls(PORT.cagr);
+sv('kv','€'+fmt(PORT.total_val));
+sv('kpnl',fmtE(PORT.total_pnl)); g('kpnl').className='val '+cls(PORT.total_pnl);
+sv('kpnl-sub',fp(PORT.pnl_pct)+' sobre coste');
+if(PORT.ytd!==null){sv('kytd',fp(PORT.ytd));g('kytd').className='val '+cls(PORT.ytd);}
+else{sv('kytd','—');}
+if(PORT.mtd!==null){sv('kmtd',fp(PORT.mtd));g('kmtd').className='val '+cls(PORT.mtd);}
+else{sv('kmtd','—');}
+sv('kanual',fp(PORT.cagr)); g('kanual').className='val '+cls(PORT.cagr);
 
-// Total cost
 const totalCost = POS.reduce((s,p)=>s+p.cost_eur,0);
 const totalVal  = POS.filter(p=>p.ok).reduce((s,p)=>s+(p.val_eur||0),0);
 
-// Pie chart
 const sortedPie = [...POS].sort((a,b)=>b.cost_eur-a.cost_eur);
 const pieData   = sortedPie.map(p=>+(p.cost_eur/totalCost*100).toFixed(1));
 const pieColors = sortedPie.map(p=>p.color);
-new Chart(g('pieC'),{
-  type:'doughnut',
+new Chart(g('pieC'),{type:'doughnut',
   data:{labels:sortedPie.map(p=>p.name.split(' ').slice(0,2).join(' ')),
          datasets:[{data:pieData,backgroundColor:pieColors,borderWidth:0,hoverOffset:5}]},
   options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
     plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: ${c.parsed.toFixed(1)}%`}}}}
 });
-g('pieLeg').innerHTML = sortedPie.map((p,i)=>
+g('pieLeg').innerHTML=sortedPie.map((p,i)=>
   `<span><span class="ldot" style="background:${pieColors[i]}"></span>${p.name.split(' ').slice(0,2).join(' ')} ${pieData[i]}%</span>`
 ).join('');
 
-// P&L chart
-const wpnl = POS.filter(p=>p.ok&&p.pnl_eur!==undefined).sort((a,b)=>b.pnl_eur-a.pnl_eur);
-const pnlH = Math.max(260, wpnl.length*26+50);
-g('pnlWrap').style.height = pnlH+'px';
-g('pnlWrap').innerHTML = '<canvas id="pnlC" role="img" aria-label="P&L por posición"></canvas>';
-new Chart(g('pnlC'),{
-  type:'bar',
+const wpnl=POS.filter(p=>p.ok&&p.pnl_eur!==undefined).sort((a,b)=>b.pnl_eur-a.pnl_eur);
+const pnlH=Math.max(260,wpnl.length*26+50);
+g('pnlWrap').style.height=pnlH+'px';
+g('pnlWrap').innerHTML='<canvas id="pnlC" role="img" aria-label="P&L por posición"></canvas>';
+new Chart(g('pnlC'),{type:'bar',
   data:{labels:wpnl.map(p=>p.name.split(' ').slice(0,2).join(' ')),
          datasets:[{data:wpnl.map(p=>+p.pnl_eur.toFixed(2)),
            backgroundColor:wpnl.map(p=>p.pnl_eur>=0?'rgba(52,211,153,.75)':'rgba(248,113,113,.75)'),
@@ -195,18 +168,16 @@ new Chart(g('pnlC'),{
     }}
 });
 
-// Perf bars
-const spYtd   = BENCH[0]?.ytd;
-const msciYtd = BENCH[1]?.ytd;
-const bars = [
-  {l:'Mi cartera · total desde inicio', v:PORT.pnl_pct, c:'#4f8ef7'},
-  {l:'Mi cartera · CAGR anualizada',    v:PORT.cagr,    c:'#a78bfa'},
-  ...(PORT.ytd!==null ? [{l:'Mi cartera · YTD', v:PORT.ytd, c:'#2dd4bf'}] : []),
-  ...(spYtd!==null   ? [{l:'S&P 500 (SPY) · YTD', v:spYtd, c:'#fbbf24'}] : []),
-  ...(msciYtd!==null ? [{l:'MSCI World (URTH) · YTD', v:msciYtd, c:'#34d399'}] : []),
+const spYtd=BENCH[0]?.ytd, msciYtd=BENCH[1]?.ytd;
+const bars=[
+  {l:'Mi cartera · total desde inicio',v:PORT.pnl_pct,c:'#4f8ef7'},
+  {l:'Mi cartera · CAGR anualizada',v:PORT.cagr,c:'#a78bfa'},
+  ...(PORT.ytd!==null?[{l:'Mi cartera · YTD',v:PORT.ytd,c:'#2dd4bf'}]:[]),
+  ...(spYtd!==null?[{l:'S&P 500 (SPY) · YTD',v:spYtd,c:'#fbbf24'}]:[]),
+  ...(msciYtd!==null?[{l:'MSCI World (URTH) · YTD',v:msciYtd,c:'#34d399'}]:[]),
 ];
-const maxV = Math.max(...bars.map(b=>Math.abs(b.v)), 1);
-g('compBars').innerHTML = bars.map(b=>`
+const maxV=Math.max(...bars.map(b=>Math.abs(b.v)),1);
+g('compBars').innerHTML=bars.map(b=>`
   <div>
     <div class="bar-hdr">
       <span class="bar-name">${b.l}</span>
@@ -215,32 +186,27 @@ g('compBars').innerHTML = bars.map(b=>`
     <div class="bar-track"><div class="bar-fill" style="width:${Math.max(Math.abs(b.v)/maxV*100,2)}%;background:${b.c}"></div></div>
   </div>`).join('');
 
-// Benchmarks
-g('benchGrid').innerHTML = [
+g('benchGrid').innerHTML=[
   ...BENCH.map(b=>{
-    const ytdStr = b.ytd!==null ? fp(b.ytd) : '—';
-    const mtdStr = b.mtd!==null ? fp(b.mtd) : '—';
-    const ytdCol = b.ytd>=0 ? 'var(--green)' : 'var(--red)';
-    const mtdCol = b.mtd>=0 ? 'var(--green)' : 'var(--red)';
+    const yc=b.ytd>=0?'var(--green)':'var(--red)';
+    const mc=b.mtd>=0?'var(--green)':'var(--red)';
     return `<div class="bench-item">
       <div class="bn">${b.name} (${b.ticker})</div>
-      <div class="bv neu">${b.price ? '$'+fmt(b.price,2) : '—'}</div>
+      <div class="bv neu">${b.price?'$'+fmt(b.price,2):'—'}</div>
       <div class="bs">
-        <span style="color:${ytdCol}">YTD: ${ytdStr}</span>
-        <span style="color:${mtdCol}">MTD: ${mtdStr}</span>
-      </div>
-    </div>`;
+        <span style="color:${yc}">YTD: ${b.ytd!==null?fp(b.ytd):'—'}</span>
+        <span style="color:${mc}">MTD: ${b.mtd!==null?fp(b.mtd):'—'}</span>
+      </div></div>`;
   }),
-  `<div class="bench-item"><div class="bn">Total depositado</div><div class="bv neu">€${fmt(PORT.deposited)}</div><div class="bs"><span>24 aportaciones</span></div></div>`,
-  `<div class="bench-item"><div class="bn">Comisiones DEGIRO</div><div class="bv neg">−€153</div><div class="bs"><span>históricas</span></div></div>`,
+  `<div class="bench-item"><div class="bn">Total depositado</div><div class="bv neu">€${fmt(PORT.deposited)}</div><div class="bs"><span>DEGIRO</span></div></div>`,
+  `<div class="bench-item"><div class="bn">Valor cartera DEGIRO</div><div class="bv neu">€6.467,77</div><div class="bs"><span>a 22/05/2026</span></div></div>`,
 ].join('');
 
-// Positions table
-const sorted = [...POS].sort((a,b)=>b.cost_eur-a.cost_eur);
-g('posBody').innerHTML = sorted.map((p,i)=>{
-  const hp = p.ok && p.val_eur !== undefined;
-  const w  = hp && totalVal>0 ? p.val_eur/totalVal*100 : p.cost_eur/totalCost*100;
-  const pc = hp ? (p.pnl_eur>=0?'pos':'neg') : '';
+const sorted=[...POS].sort((a,b)=>b.cost_eur-a.cost_eur);
+g('posBody').innerHTML=sorted.map((p,i)=>{
+  const hp=p.ok&&p.val_eur!==undefined;
+  const w=hp&&totalVal>0?p.val_eur/totalVal*100:p.cost_eur/totalCost*100;
+  const pc=hp?(p.pnl_eur>=0?'pos':'neg'):'';
   return `<tr>
     <td><div class="pname">${p.name}</div><div class="ptick">${p.ticker}</div></td>
     <td><span class="badge">${p.cur}</span></td>
