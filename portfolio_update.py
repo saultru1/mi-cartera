@@ -294,7 +294,7 @@ def build_chart_data(pos_data, bench_hist, fx, start_date):
 
     # Alinear todas las series en un DataFrame común
     nav_df = pd.concat(nav_frames, axis=1).sort_index()
-    nav_df = nav_df.fillna(method="ffill").dropna(how="all")
+    nav_df = nav_df.ffill().dropna(how="all")
 
     # NAV total = suma de contribuciones ponderadas
     nav_total = nav_df.sum(axis=1)
