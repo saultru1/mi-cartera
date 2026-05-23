@@ -445,7 +445,7 @@ g('compBars').innerHTML = bars.map(b=>`
   <div>
     <div class="bar-hdr">
       <span class="bar-name">${{b.l}}</span>
-      <span class="bar-val" style="color:${{b.v>=0?'var(--green)':'var(--red)'}}}">${{fp(b.v)}}</span>
+      <span class="bar-val" style="color:${{b.v>=0?'var(--green)':'var(--red)'}}">${{fp(b.v)}}</span>
     </div>
     <div class="bar-track"><div class="bar-fill" style="width:${{Math.max(Math.abs(b.v)/maxV*100,2)}}%;background:${{b.c}}"></div></div>
   </div>`).join('');
