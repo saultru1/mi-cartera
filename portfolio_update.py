@@ -167,7 +167,7 @@ def build_chart(pos_hist_map, bench_hists, fx):
 
     # DataFrame con todas las series, reindexado al calendario
     df = pd.DataFrame(ret_series)
-    df = df.reindex(cal, method="ffill")
+    df = df.reindex(cal).ffill()
 
     # Para cada día, solo contribuyen las posiciones ya compradas
     portfolio_ret = pd.Series(index=cal, dtype=float)
@@ -208,10 +208,10 @@ def build_chart(pos_hist_map, bench_hists, fx):
         base_price = float(h[base_mask]["Close"].iloc[-1])
 
         # Serie reindexada y normalizada
-        s = h.reindex(cal, method="ffill")["Close"]
+        s = h.reindex(cal).ffill()["Close"]
         s_b100 = (s / base_price * 100).round(2)
         bench_out[bname] = {
-            "values": s_b100.fillna(method="ffill").tolist(),
+            "values": s_b100.ffill().tolist(),
             "color":  BENCH_COLORS.get(bname, "#a78bfa")
         }
 
