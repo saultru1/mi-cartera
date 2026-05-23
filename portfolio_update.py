@@ -1,145 +1,260 @@
 #!/usr/bin/env python3
 """
 Dashboard de cartera DEGIRO - Saúl Trujillo
-Uso: pip install yfinance && python portfolio_update.py
-Genera: portfolio_dashboard.html
+Uso: pip install yfinance pandas && python portfolio_update.py
 """
 
 import yfinance as yf
-import json, os
+import pandas as pd
+import json, os, warnings
 from datetime import datetime, date
 
+warnings.filterwarnings("ignore")
+
 # ─────────────────────────────────────────────────────────
-#  POSICIONES  (costes reales del historial DEGIRO)
-#  Divisa = divisa nativa del mercado donde cotiza
+#  ⚠️  ACTUALIZA ESTOS 2 VALORES CADA VEZ QUE CORRAS EL SCRIPT
+#  Los encuentras en DEGIRO → pantalla principal
+# ─────────────────────────────────────────────────────────
+CASH_IN_ACCOUNT   = 1992.78   # "EUR" en DEGIRO
+TOTAL_ACCOUNT_VAL = 8460.55   # "Cuenta Completa" en DEGIRO
+# ─────────────────────────────────────────────────────────
+
+TOTAL_DEPOSITED = 8099.00
+START_DATE      = date(2022, 7, 25)
+
+# ─────────────────────────────────────────────────────────
+#  POSICIONES ABIERTAS
 # ─────────────────────────────────────────────────────────
 POSITIONS = [
-    # (nombre, ticker Yahoo Finance, qty, coste_eur, divisa, primera_compra)
+    # (nombre, ticker, qty, coste_eur, divisa_nativa, fecha_primera_compra)
     ("Adobe Inc",                "ADBE",      7,   1478.47, "USD", "2025-11-19"),
-    ("QinetiQ Group PLC",        "QQ.L",      150,  711.27, "GBX", "2026-05-12"),  # Londres peniques
+    ("QinetiQ Group PLC",        "QQ.L",      150,  711.27, "GBX", "2026-05-12"),
     ("Microsoft Corp",           "MSFT",      2,    638.99, "USD", "2026-03-26"),
-    ("Italian Sea Group SpA",    "TISG.MI",   47,   418.41, "EUR", "2024-06-18"),  # Milán euros
-    ("Greggs PLC",               "GRG.L",     22,   445.90, "GBX", "2025-03-04"),  # Londres peniques
+    ("Greggs PLC",               "GRG.L",     22,   445.90, "GBX", "2025-03-04"),
     ("Wendy's Co",               "WEN",       37,   444.68, "USD", "2025-01-16"),
+    ("Italian Sea Group SpA",    "TISG.MI",   47,   418.41, "EUR", "2024-06-18"),
     ("PayPal Holdings Inc",      "PYPL",      7,    351.94, "USD", "2025-12-31"),
     ("FactSet Research Systems", "FDS",       2,    349.79, "USD", "2026-02-05"),
-    ("Novo Nordisk A/S Class B", "NOVO-B.CO", 5,    245.83, "DKK", "2025-07-29"),  # Copenhague coronas
+    ("Novo Nordisk A/S Class B", "NOVO-B.CO", 5,    245.83, "DKK", "2025-07-29"),
     ("ADR on Nice Ltd",          "NICE",      2,    235.02, "USD", "2025-09-02"),
-    ("FRP Advisory Group PLC",   "FRP.L",     150,  221.76, "GBX", "2025-06-17"),  # Londres peniques
+    ("FRP Advisory Group PLC",   "FRP.L",     150,  221.76, "GBX", "2025-06-17"),
     ("Nomad Foods Ltd",          "NOMD",      18,   218.49, "USD", "2025-09-10"),
-    ("Evolution AB",             "E3G1.MU",   3,    218.04, "EUR", "2024-12-23"),  # Xetra euros
+    ("Evolution AB",             "E3G1.MU",   3,    218.04, "EUR", "2024-12-23"),
     ("Euronet Worldwide Inc",    "EEFT",      3,    205.82, "USD", "2025-10-28"),
     ("Alphabet Inc Class A",     "GOOGL",     2,    205.23, "USD", "2022-09-23"),
-    ("ADR on Novo Nordisk A/S",  "NVO",       6,    202.90, "USD", "2026-03-16"),  # NYSE ADR
+    ("ADR on Novo Nordisk A/S",  "NVO",       6,    202.90, "USD", "2026-03-16"),
     ("Brown-Forman Corp Class B","BF-B",      3,     91.59, "USD", "2025-02-07"),
 ]
 
-BENCHMARKS = [
-    ("S&P 500",    "SPY",  "USD"),
-    ("MSCI World", "URTH", "USD"),
-]
+BENCHMARKS = [("S&P 500", "SPY"), ("MSCI World", "URTH")]
 
-TOTAL_DEPOSITED   = 8099.0    # Total EUR depositado en DEGIRO
-CASH_IN_ACCOUNT   = 1992.78   # Cash EUR en cuenta (actualizar manualmente)
-TOTAL_ACCOUNT_VAL = 8460.55   # Cuenta Completa DEGIRO (cartera + cash)
-# ⚠️  Actualiza CASH_IN_ACCOUNT y TOTAL_ACCOUNT_VAL cada vez que corras el script
-# con los valores que ves en DEGIRO → "Cuenta Completa" y "EUR"
-START_DATE        = date(2022, 7, 25)
+FX_PAIRS = {"USD": "EURUSD=X", "GBP": "EURGBP=X", "DKK": "EURDKK=X"}
 
-# Tipos de cambio: cuántos EUR vale 1 unidad de cada divisa
-FX_PAIRS = {
-    "USD": "EURUSD=X",   # 1 USD = ? EUR
-    "GBP": "EURGBP=X",   # 1 GBP = ? EUR  (GBX = GBP/100)
-    "DKK": "EURDKK=X",   # 1 DKK = ? EUR
-}
-
-COLORS = [
-    "#4f8ef7","#34d399","#a78bfa","#fbbf24","#f87171","#2dd4bf","#fb923c",
-    "#c084fc","#86efac","#67e8f9","#fda4af","#a3e635","#fdba74","#7dd3fc",
-    "#d8b4fe","#6ee7b7","#fcd34d",
-]
+COLORS = ["#4f8ef7","#34d399","#a78bfa","#fbbf24","#f87171","#2dd4bf","#fb923c",
+          "#c084fc","#86efac","#67e8f9","#fda4af","#a3e635","#fdba74","#7dd3fc",
+          "#d8b4fe","#6ee7b7","#fcd34d"]
 
 
 # ─────────────────────────────────────────────────────────
-#  FETCH HELPERS
+#  FX
 # ─────────────────────────────────────────────────────────
 def fetch_fx():
-    """Descarga tipos de cambio a EUR."""
     fx = {"EUR": 1.0}
     print("  FX rates...", end=" ", flush=True)
     for cur, pair in FX_PAIRS.items():
         try:
             h = yf.Ticker(pair).history(period="5d")
             if not h.empty:
-                # EURUSD=X da cuántos USD vale 1 EUR → invertimos
-                rate = float(h["Close"].iloc[-1])
-                fx[cur] = 1.0 / rate
-        except Exception as e:
-            print(f"\n    ⚠ FX {cur}: {e}")
-    # GBX = penique = GBP/100
+                fx[cur] = 1.0 / float(h["Close"].iloc[-1])
+        except:
+            pass
     fx["GBX"] = fx.get("GBP", 0.01175) / 100
-    print(f"USD:{fx.get('USD',0.92):.4f}  GBX:{fx.get('GBX',0.01175):.5f}  DKK:{fx.get('DKK',0.134):.4f}")
+    print(f"USD:{fx.get('USD',0.92):.4f} GBP:{fx.get('GBP',1.175):.4f} DKK:{fx.get('DKK',0.134):.4f}")
     return fx
 
 
-def fetch_ohlc(ticker, period="3y"):
-    """Devuelve DataFrame con histórico diario de cierre."""
-    h = yf.Ticker(ticker).history(period=period)
-    if h.empty:
+# ─────────────────────────────────────────────────────────
+#  HISTÓRICO DIARIO
+# ─────────────────────────────────────────────────────────
+def fetch_hist(ticker, period="5y"):
+    try:
+        h = yf.Ticker(ticker).history(period=period)
+        if h.empty:
+            return None
+        h = h[["Close"]].copy()
+        h.index = h.index.tz_localize(None)
+        return h
+    except:
         return None
-    h = h[["Close"]].copy()
-    h.index = h.index.tz_localize(None)
-    return h
 
 
-def latest_price(h):
-    """Último precio disponible."""
+def first_price_on_or_after(h, target_date):
+    if h is None:
+        return None
+    mask = h.index.date >= target_date
+    sub  = h[mask]
+    return float(sub["Close"].iloc[0]) if not sub.empty else None
+
+
+def last_price(h):
     if h is None or h.empty:
         return None
     return float(h["Close"].iloc[-1])
 
 
-def price_on_or_after(h, target_date):
-    """Primer precio en o después de target_date."""
-    if h is None:
-        return None
-    mask = h.index.date >= target_date
-    sub = h[mask]
-    return float(sub["Close"].iloc[0]) if not sub.empty else None
+# ─────────────────────────────────────────────────────────
+#  GRÁFICO HISTÓRICO DIARIO CORRECTO
+#
+#  Metodología:
+#  - Cada día calculamos la rentabilidad de cada posición desde
+#    su fecha de compra: ret_i(t) = price(t)/price(buy_date) - 1
+#  - La rentabilidad de la cartera ese día es la media ponderada
+#    de las rentabilidades de las posiciones activas, ponderadas
+#    por su coste de adquisición
+#  - Los benchmarks se normalizan a 100 en el mismo primer día
+#    que la primera posición de la cartera (julio 2022)
+# ─────────────────────────────────────────────────────────
+def build_chart(pos_hist_map, bench_hists, fx):
+    print("\n  Construyendo gráfico histórico...", end=" ", flush=True)
+
+    # Calendario de referencia: días hábiles desde START_DATE
+    ref = bench_hists.get("SPY")
+    if ref is None:
+        print("sin datos")
+        return {}
+
+    mask = ref.index.date >= START_DATE
+    cal  = ref[mask].index
+    if cal.empty:
+        print("sin datos")
+        return {}
+
+    total_cost = sum(p[3] for p in POSITIONS)
+
+    # Para cada ticker, construir serie de retorno diario desde buy_date
+    # ret_series[ticker] = Serie con índice = fechas, valores = % retorno desde compra
+    ret_series = {}
+    weights    = {}
+
+    for p in POSITIONS:
+        name, tkr, qty, cost_eur, cur, buy_date_str = p
+        buy_date = date.fromisoformat(buy_date_str)
+        h = pos_hist_map.get(tkr)
+        if h is None:
+            continue
+
+        fxr = fx.get(cur, 1.0)
+
+        # Precio de compra = primer precio disponible en o después de buy_date
+        buy_mask  = h.index.date >= buy_date
+        buy_sub   = h[buy_mask]
+        if buy_sub.empty:
+            continue
+        price_buy = float(buy_sub["Close"].iloc[0]) * fxr  # en EUR
+
+        # Serie de precios en EUR desde buy_date
+        prices_eur = h[buy_mask]["Close"] * fxr
+
+        # Retorno acumulado desde compra: (price_t / price_buy) - 1
+        ret = (prices_eur / price_buy) - 1.0
+        ret.name = tkr
+        ret_series[tkr] = ret
+        weights[tkr]    = cost_eur / total_cost
+
+    if not ret_series:
+        print("sin datos posiciones")
+        return {}
+
+    # DataFrame con todas las series, reindexado al calendario
+    df = pd.DataFrame(ret_series)
+    df = df.reindex(cal, method="ffill")
+
+    # Para cada día, solo contribuyen las posiciones ya compradas
+    portfolio_ret = pd.Series(index=cal, dtype=float)
+    for dt in cal:
+        dt_date = dt.date()
+        total_w = 0.0
+        val     = 0.0
+        for p in POSITIONS:
+            _, tkr, _, cost_eur, _, buy_date_str = p
+            if date.fromisoformat(buy_date_str) > dt_date:
+                continue
+            if tkr not in df.columns:
+                continue
+            r = df.loc[dt, tkr]
+            if pd.isna(r):
+                continue
+            w = weights.get(tkr, 0)
+            val     += r * w
+            total_w += w
+        portfolio_ret[dt] = (val / total_w) if total_w > 0 else 0.0
+
+    # Convertir a base 100
+    portfolio_b100 = (1 + portfolio_ret) * 100
+
+    # Benchmarks: base 100 desde el primer día del calendario
+    bench_out = {}
+    first_dt  = cal[0]
+    BENCH_COLORS = {"S&P 500": "#fbbf24", "MSCI World": "#34d399"}
+
+    for bname, btkr in BENCHMARKS:
+        h = bench_hists.get(btkr)
+        if h is None:
+            continue
+        # Precio base en el primer día del calendario
+        base_mask = h.index <= first_dt
+        if base_mask.sum() == 0:
+            continue
+        base_price = float(h[base_mask]["Close"].iloc[-1])
+
+        # Serie reindexada y normalizada
+        s = h.reindex(cal, method="ffill")["Close"]
+        s_b100 = (s / base_price * 100).round(2)
+        bench_out[bname] = {
+            "values": s_b100.fillna(method="ffill").tolist(),
+            "color":  BENCH_COLORS.get(bname, "#a78bfa")
+        }
+
+    dates  = [d.strftime("%Y-%m-%d") for d in cal]
+    values = portfolio_b100.round(2).tolist()
+
+    print(f"OK ({len(dates)} días · cartera: {values[0]:.1f}→{values[-1]:.1f})")
+    return {"dates": dates, "portfolio": values, "benchmarks": bench_out}
 
 
 # ─────────────────────────────────────────────────────────
 #  MAIN
 # ─────────────────────────────────────────────────────────
 def main():
-    print("\n🔄 Descargando datos de Yahoo Finance...\n")
-    fx = fetch_fx()
-    total_cost = sum(p[3] for p in POSITIONS)
+    print("\n🔄 Yahoo Finance → portfolio_dashboard.html\n")
+
+    fx  = fetch_fx()
     now = datetime.now()
     ytd_start = date(now.year, 1, 1)
     mtd_start = date(now.year, now.month, 1)
 
-    # ── Posiciones ──
-    pos_data = []
-    hist_cache = {}   # ticker → DataFrame histórico
+    # ── Descargar históricos de posiciones ──
+    pos_hist_map = {}
+    pos_data     = []
+    total_cost   = sum(p[3] for p in POSITIONS)
 
     for i, (name, tkr, qty, cost_eur, cur, buy_date) in enumerate(POSITIONS):
         print(f"  [{i+1:02d}/{len(POSITIONS)}] {name[:32]}...", end=" ", flush=True)
         try:
-            h = fetch_ohlc(tkr, period="3y")
+            h = fetch_hist(tkr, period="5y")
             if h is None:
                 raise ValueError("sin datos")
-            hist_cache[tkr] = h
+            pos_hist_map[tkr] = h
 
-            price     = latest_price(h)
             fxr       = fx.get(cur, 1.0)
+            price     = last_price(h)
             price_eur = price * fxr
             val_eur   = price_eur * qty
             pnl_eur   = val_eur - cost_eur
             pnl_pct   = pnl_eur / cost_eur * 100
 
-            ytd_p = price_on_or_after(h, ytd_start)
-            mtd_p = price_on_or_after(h, mtd_start)
+            ytd_p = first_price_on_or_after(h, ytd_start)
+            mtd_p = first_price_on_or_after(h, mtd_start)
             ytd_r = (price - ytd_p) / ytd_p * 100 if ytd_p else None
             mtd_r = (price - mtd_p) / mtd_p * 100 if mtd_p else None
 
@@ -151,7 +266,7 @@ def main():
                 "ytd_ret": ytd_r, "mtd_ret": mtd_r,
                 "ok": True, "color": COLORS[i % len(COLORS)],
             })
-            print(f"€{price_eur:.3f}  P&L:{pnl_pct:+.1f}%")
+            print(f"€{price_eur:.3f}  P&L posición:{pnl_pct:+.1f}%")
         except Exception as e:
             print(f"ERROR: {e}")
             pos_data.append({
@@ -163,39 +278,34 @@ def main():
     # ── Benchmarks ──
     print("\n  Benchmarks...")
     bench_data = []
-    bench_hist = {}
-    for bname, btkr, bcur in BENCHMARKS:
+    bench_hists = {}
+    for bname, btkr in BENCHMARKS:
         try:
-            h = fetch_ohlc(btkr, period="3y")
+            h = fetch_hist(btkr, period="5y")
             if h is None:
                 raise ValueError("sin datos")
-            bench_hist[btkr] = h
-            price = latest_price(h)
-            ytd_p = price_on_or_after(h, ytd_start)
-            mtd_p = price_on_or_after(h, mtd_start)
+            bench_hists[btkr] = h
+            price = last_price(h)
+            ytd_p = first_price_on_or_after(h, ytd_start)
+            mtd_p = first_price_on_or_after(h, mtd_start)
             ytd_r = (price - ytd_p) / ytd_p * 100 if ytd_p else None
             mtd_r = (price - mtd_p) / mtd_p * 100 if mtd_p else None
-            bench_data.append({"name": bname, "ticker": btkr, "cur": bcur,
+            bench_data.append({"name": bname, "ticker": btkr,
                                 "price": price, "ytd": ytd_r, "mtd": mtd_r})
-            print(f"    {bname} ({btkr}): ${price:.2f}  YTD:{ytd_r:+.1f}%" if ytd_r else f"    {bname}: ${price:.2f}")
+            print(f"    {bname}: ${price:.2f}  YTD:{ytd_r:+.1f}%" if ytd_r else f"    {bname}: ${price:.2f}")
         except Exception as e:
             print(f"    {bname}: ERROR {e}")
-            bench_data.append({"name": bname, "ticker": btkr, "cur": bcur,
+            bench_data.append({"name": bname, "ticker": btkr,
                                 "price": None, "ytd": None, "mtd": None})
 
-    # ── Portfolio aggregates ──
-    valid     = [p for p in pos_data if p.get("ok")]
-    total_val = sum(p["val_eur"] for p in valid)  # solo posiciones abiertas
+    # ── Rentabilidades REALES (cuenta completa) ──
+    real_pnl     = TOTAL_ACCOUNT_VAL - TOTAL_DEPOSITED   # +361.55
+    real_pnl_pct = real_pnl / TOTAL_DEPOSITED * 100      # +4.46%
+    years        = (date.today() - START_DATE).days / 365.25
+    cagr         = ((1 + real_pnl_pct/100)**(1/years) - 1)*100 if years > 0 else 0
 
-    # ── Rentabilidad REAL: cuenta completa (cartera + cash) vs depositado ──
-    # Este es el número correcto — coincide con "Total B/P" de DEGIRO
-    real_pnl      = TOTAL_ACCOUNT_VAL - TOTAL_DEPOSITED
-    real_pnl_pct  = real_pnl / TOTAL_DEPOSITED * 100
-    years         = (date.today() - START_DATE).days / 365.25
-    cagr          = ((1 + real_pnl_pct / 100) ** (1 / years) - 1) * 100 if years > 0 else 0
-
-    # ── YTD y MTD: weighted average de posiciones abiertas ──
-    # (proxy razonable — las posiciones cerradas en el año no tienen precio actual)
+    # YTD y MTD: media ponderada de posiciones abiertas (mejor proxy disponible)
+    valid = [p for p in pos_data if p.get("ok")]
     yn = yd = mn = md = 0.0
     for p in valid:
         bd = date.fromisoformat(p["buy_date"])
@@ -204,173 +314,41 @@ def main():
         if p.get("mtd_ret") is not None and bd < mtd_start:
             mn += p["mtd_ret"] * p["cost_eur"]; md += p["cost_eur"]
 
+    total_val_open = sum(p["val_eur"] for p in valid)
+
     portfolio = {
-        "total_val":      total_val,
-        "total_cost":     total_cost,
-        "account_val":    TOTAL_ACCOUNT_VAL,
-        "cash":           CASH_IN_ACCOUNT,
-        "total_pnl":      real_pnl,
-        "pnl_pct":        real_pnl_pct,
-        "cagr":           cagr,
-        "ytd":            yn / yd if yd > 0 else None,
-        "mtd":            mn / md if md > 0 else None,
-        "updated":        now.strftime("%d/%m/%Y %H:%M"),
-        "deposited":      TOTAL_DEPOSITED,
-        "start_date":     START_DATE.isoformat(),
+        "account_val":  TOTAL_ACCOUNT_VAL,
+        "open_val":     total_val_open,
+        "cash":         CASH_IN_ACCOUNT,
+        "total_cost":   total_cost,
+        "total_pnl":    real_pnl,
+        "pnl_pct":      real_pnl_pct,
+        "cagr":         cagr,
+        "ytd":          yn/yd if yd > 0 else None,
+        "mtd":          mn/md if md > 0 else None,
+        "updated":      now.strftime("%d/%m/%Y %H:%M"),
+        "deposited":    TOTAL_DEPOSITED,
+        "start_date":   START_DATE.isoformat(),
     }
 
-    # ── Gráfico histórico diario: cartera vs benchmarks desde inicio ──
-    chart_data = build_chart_data(pos_data, bench_hist, fx, START_DATE)
+    # ── Gráfico histórico ──
+    chart_data = build_chart(pos_hist_map, bench_hists, fx)
 
     generate_html(pos_data, bench_data, portfolio, chart_data)
 
     print(f"\n✅  portfolio_dashboard.html generado")
-    print(f"    Valor posiciones: €{total_val:,.0f}")
-    print(f"    Cash en cuenta:   €{CASH_IN_ACCOUNT:,.2f}")
-    print(f"    Cuenta completa:  €{TOTAL_ACCOUNT_VAL:,.2f}")
-    print(f"    Total depositado: €{TOTAL_DEPOSITED:,.2f}")
-    print(f"    P&L real (€):     €{real_pnl:+,.2f}")
-    print(f"    P&L real (%):     {real_pnl_pct:+.2f}%  ← coincide con DEGIRO Total B/P")
-    print(f"    CAGR:             {cagr:+.2f}%")
-    if portfolio["ytd"]: print(f"    YTD:              {portfolio['ytd']:+.1f}%")
-    if portfolio["mtd"]: print(f"    MTD:              {portfolio['mtd']:+.1f}%")
+    print(f"    Valor posiciones abiertas: €{total_val_open:,.0f}")
+    print(f"    Cash en cuenta:            €{CASH_IN_ACCOUNT:,.2f}")
+    print(f"    Cuenta completa DEGIRO:    €{TOTAL_ACCOUNT_VAL:,.2f}")
+    print(f"    Total depositado:          €{TOTAL_DEPOSITED:,.2f}")
+    print(f"    P&L REAL:                  €{real_pnl:+,.2f} ({real_pnl_pct:+.2f}%)")
+    print(f"    CAGR:                      {cagr:+.2f}%")
+    if portfolio["ytd"]: print(f"    YTD posiciones abiertas:   {portfolio['ytd']:+.1f}%")
+    if portfolio["mtd"]: print(f"    MTD posiciones abiertas:   {portfolio['mtd']:+.1f}%")
 
 
 # ─────────────────────────────────────────────────────────
-#  HISTORICAL CHART DATA
-#  Rentabilidad diaria normalizada a base 100 desde inicio
-# ─────────────────────────────────────────────────────────
-def build_chart_data(pos_data, bench_hist, fx, start_date):
-    """
-    Construye series diarias de rentabilidad acumulada (base 100)
-    desde start_date para la cartera y los benchmarks.
-
-    La cartera se calcula como un portfolio con rebalanceo en cada
-    fecha de compra: antes de comprar una posición, su peso es 0;
-    desde su fecha de compra contribuye con su valor de mercado.
-    El NAV total se normaliza a 100 en la primera fecha disponible.
-    """
-    import pandas as pd
-
-    print("\n  Construyendo gráfico histórico...", end=" ", flush=True)
-
-    # ── 1. Descargar histórico de cada posición ──
-    pos_hist = {}
-    for p in pos_data:
-        if not p.get("ok"):
-            continue
-        tkr = p["ticker"]
-        try:
-            h = yf.Ticker(tkr).history(period="5y")
-            if h.empty:
-                continue
-            h = h[["Close"]].copy()
-            h.index = h.index.tz_localize(None)
-            pos_hist[tkr] = h
-        except:
-            continue
-
-    # ── 2. Construir índice de fechas común desde start_date ──
-    # Usamos el calendario de días hábiles de SPY como referencia
-    ref_h = bench_hist.get("SPY")
-    if ref_h is None or ref_h.empty:
-        print("sin datos benchmark")
-        return {}
-
-    mask = ref_h.index.date >= start_date
-    all_dates = ref_h[mask].index
-    if all_dates.empty:
-        return {}
-
-    # ── 3. Para cada fecha, calcular el valor de la cartera ──
-    # Método: para cada posición, su valor en una fecha dada es
-    # precio(fecha) * qty * fx_rate, solo si fecha >= buy_date.
-    # El valor total de la cartera en cada fecha es la suma de todas
-    # las posiciones activas en esa fecha.
-
-    portfolio_values = pd.Series(index=all_dates, dtype=float)
-
-    for dt in all_dates:
-        dt_date = dt.date()
-        total = 0.0
-        has_any = False
-        for p in pos_data:
-            if not p.get("ok"):
-                continue
-            buy_date = date.fromisoformat(p["buy_date"])
-            if dt_date < buy_date:
-                continue  # aún no comprada
-            h = pos_hist.get(p["ticker"])
-            if h is None:
-                continue
-            # Precio más reciente disponible hasta esta fecha
-            mask_price = h.index <= dt
-            sub = h[mask_price]
-            if sub.empty:
-                continue
-            price = float(sub["Close"].iloc[-1])
-            fxr = fx.get(p["cur"], 1.0)
-            val = price * fxr * p["qty"]
-            total += val
-            has_any = True
-        portfolio_values[dt] = total if has_any else None
-
-    portfolio_values = portfolio_values.dropna()
-    if portfolio_values.empty:
-        print("sin datos cartera")
-        return {}
-
-    # Normalizar a base 100 en la primera fecha
-    base = portfolio_values.iloc[0]
-    portfolio_norm = (portfolio_values / base * 100).round(2)
-
-    # ── 4. Benchmarks normalizados desde la misma primera fecha ──
-    bench_out = {}
-    first_dt = portfolio_norm.index[0]
-
-    for bname, btkr, _ in BENCHMARKS:
-        h = bench_hist.get(btkr)
-        if h is None:
-            continue
-        # Precio del benchmark en la primera fecha de la cartera
-        mask_base = h.index <= first_dt
-        sub_base = h[mask_base]
-        if sub_base.empty:
-            continue
-        base_price = float(sub_base["Close"].iloc[-1])
-
-        # Serie desde first_dt
-        mask_series = h.index >= first_dt
-        s = h[mask_series]["Close"].copy()
-        if s.empty:
-            continue
-
-        # Reindexar al mismo calendario que la cartera y ffill
-        s = s.reindex(portfolio_norm.index, method="ffill")
-        s_norm = (s / base_price * 100).round(2)
-        bench_out[bname] = s_norm.dropna().tolist()
-
-    dates  = [d.strftime("%Y-%m-%d") for d in portfolio_norm.index]
-    values = portfolio_norm.tolist()
-
-    # Alinear longitudes
-    min_len = min(len(values), *[len(v) for v in bench_out.values()]) if bench_out else len(values)
-    dates  = dates[:min_len]
-    values = values[:min_len]
-    for k in bench_out:
-        bench_out[k] = bench_out[k][:min_len]
-
-    print(f"OK ({len(dates)} días, cartera: {values[0]:.1f}→{values[-1]:.1f})")
-
-    return {
-        "dates":      dates,
-        "portfolio":  values,
-        "benchmarks": bench_out,
-    }
-
-
-# ─────────────────────────────────────────────────────────
-#  HTML GENERATOR
+#  HTML
 # ─────────────────────────────────────────────────────────
 def generate_html(pos_data, bench_data, portfolio, chart_data):
     pj  = json.dumps(pos_data,   ensure_ascii=False)
@@ -379,6 +357,7 @@ def generate_html(pos_data, bench_data, portfolio, chart_data):
     cj  = json.dumps(chart_data, ensure_ascii=False)
     n   = len(pos_data)
     upd = portfolio["updated"]
+    years_str = f"{(date.today()-START_DATE).days/365.25:.1f} años"
 
     html = f"""<!DOCTYPE html>
 <html lang="es"><head>
@@ -404,17 +383,13 @@ body{{min-height:100vh;padding:28px 32px;max-width:1400px;margin:0 auto;}}
 .kpi .vl{{font-size:22px;font-weight:700;font-family:var(--mo);letter-spacing:-1px;line-height:1;}}
 .kpi .sb{{font-size:11px;color:var(--mu);margin-top:6px;}}
 .pos{{color:var(--gr);}}.neg{{color:var(--rd);}}.neu{{color:var(--tx);}}
-.card{{background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:20px;}}
+.card{{background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:20px;margin-bottom:14px;}}
 .ct{{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:14px;}}
 .cs{{font-size:11px;color:var(--mu);font-weight:400;margin-left:6px;}}
-/* Chart historico full width */
-.chart-full{{margin-bottom:14px;}}
-.chart-legend{{display:flex;gap:20px;margin-bottom:12px;font-size:12px;}}
-.chart-legend span{{display:flex;align-items:center;gap:6px;}}
-.cleg-dot{{width:10px;height:3px;border-radius:2px;}}
-/* Grid 2 col */
+.cleg{{display:flex;gap:20px;margin-bottom:12px;font-size:12px;color:var(--mu);}}
+.cleg span{{display:flex;align-items:center;gap:6px;}}
+.cleg-line{{height:3px;width:16px;border-radius:2px;}}
 .g2{{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}}
-/* Perf row */
 .g32{{display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px;}}
 .cb{{display:flex;flex-direction:column;gap:12px;}}
 .bh{{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;}}
@@ -445,79 +420,80 @@ tr:hover td{{background:rgba(255,255,255,.02);}}
 .wb{{display:flex;align-items:center;gap:7px;justify-content:flex-end;}}
 .wbar{{height:4px;border-radius:2px;opacity:.65;}}
 .mo{{font-family:var(--mo);}}
+.note{{font-size:11px;color:var(--am);background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:6px;padding:8px 12px;margin-bottom:14px;}}
 .ft{{text-align:center;color:var(--mu);font-size:11px;padding:20px 0;border-top:1px solid var(--bd);margin-top:4px;}}
 </style></head><body>
 
 <div class="hdr">
-  <div><h1>📊 Mi Cartera · DEGIRO</h1><p>Yahoo Finance · <span class="ok">✓ Actualizado {upd}</span></p></div>
-  <div class="ts">Última actualización<br><strong style="color:var(--tx)">{upd}</strong><br><small>Ejecuta portfolio_update.py para refrescar</small></div>
+  <div><h1>📊 Mi Cartera · DEGIRO</h1><p>Yahoo Finance · <span class="ok">✓ {upd}</span></p></div>
+  <div class="ts">Última actualización<br><strong style="color:var(--tx)">{upd}</strong><br><small>python portfolio_update.py</small></div>
 </div>
 
-<!-- KPIs -->
+<p class="note">⚠️ P&L y CAGR calculados sobre el valor total de la cuenta DEGIRO (cartera + cash) vs total depositado. Actualiza <code>TOTAL_ACCOUNT_VAL</code> y <code>CASH_IN_ACCOUNT</code> en el script antes de ejecutar.</p>
+
 <div class="krow">
-  <div class="kpi"><div class="lb">Valor total cuenta</div><div class="vl neu" id="kv">—</div><div class="sb" id="kv-sub">cartera + cash DEGIRO</div></div>
-  <div class="kpi"><div class="lb">P&L Total</div><div class="vl" id="kp">—</div><div class="sb" id="ks">vs total depositado</div></div>
-  <div class="kpi"><div class="lb">Rentab. YTD</div><div class="vl" id="ky">—</div><div class="sb">año en curso pond.</div></div>
-  <div class="kpi"><div class="lb">Rentab. MTD</div><div class="vl" id="km">—</div><div class="sb">mes en curso pond.</div></div>
-  <div class="kpi"><div class="lb">Anualizada</div><div class="vl" id="ka">—</div><div class="sb">CAGR desde jul 2022</div></div>
+  <div class="kpi"><div class="lb">Cuenta completa</div><div class="vl neu" id="kv">—</div><div class="sb" id="kv-sub">cartera + cash</div></div>
+  <div class="kpi"><div class="lb">P&L Real</div><div class="vl" id="kp">—</div><div class="sb" id="ks">vs total depositado</div></div>
+  <div class="kpi"><div class="lb">YTD posiciones</div><div class="vl" id="ky">—</div><div class="sb">pond. por coste</div></div>
+  <div class="kpi"><div class="lb">MTD posiciones</div><div class="vl" id="km">—</div><div class="sb" id="kms">mes en curso</div></div>
+  <div class="kpi"><div class="lb">CAGR real</div><div class="vl" id="ka">—</div><div class="sb">desde jul 2022 · {years_str}</div></div>
 </div>
 
-<!-- GRAFICO HISTORICO DIARIO -->
-<div class="card chart-full">
-  <div class="ct">Evolución cartera vs benchmarks <span class="cs">rentabilidad acumulada diaria desde jul 2022 · base 100</span></div>
-  <div class="chart-legend" id="chartLeg"></div>
+<!-- GRÁFICO HISTÓRICO -->
+<div class="card">
+  <div class="ct">Evolución vs benchmarks <span class="cs">retorno acumulado ponderado · base 100 desde jul 2022</span></div>
+  <div class="cleg" id="chartLeg"></div>
   <div style="position:relative;height:320px;">
-    <canvas id="histC" role="img" aria-label="Evolución histórica diaria de la cartera frente al SP500 y MSCI World"></canvas>
+    <canvas id="histC" role="img" aria-label="Evolución histórica de la cartera frente al SP500 y MSCI World"></canvas>
   </div>
 </div>
 
-<!-- GRAFICOS PESO Y PNL -->
+<!-- PIE + PNL -->
 <div class="g2">
-  <div class="card">
+  <div class="card" style="margin-bottom:0">
     <div class="ct">Peso por posición <span class="cs">% sobre coste adquisición</span></div>
-    <div style="position:relative;height:260px;"><canvas id="pieC" role="img" aria-label="Pesos por posición"></canvas></div>
+    <div style="position:relative;height:260px;"><canvas id="pieC"></canvas></div>
     <div class="pie-leg" id="pieLeg"></div>
   </div>
-  <div class="card">
-    <div class="ct">P&L por posición <span class="cs">€ ganancia / pérdida</span></div>
-    <div id="pnlW" style="position:relative;height:260px;"><canvas id="pnlC" role="img" aria-label="P&L por posición"></canvas></div>
+  <div class="card" style="margin-bottom:0">
+    <div class="ct">P&L por posición <span class="cs">€ sobre coste</span></div>
+    <div id="pnlW" style="position:relative;height:260px;"><canvas id="pnlC"></canvas></div>
   </div>
 </div>
+<div style="margin-bottom:14px"></div>
 
-<!-- RENTABILIDADES COMPARADAS + BENCHMARKS -->
+<!-- COMPARATIVA + BENCHMARKS -->
 <div class="g32">
-  <div class="card">
-    <div class="ct">Rentabilidades comparadas</div>
+  <div class="card" style="margin-bottom:0">
+    <div class="ct">Comparativa de rentabilidades</div>
     <div class="cb" id="compB"></div>
   </div>
-  <div class="card">
-    <div class="ct">Benchmarks · tiempo real</div>
+  <div class="card" style="margin-bottom:0">
+    <div class="ct">Benchmarks</div>
     <div class="bg">
       <div class="bi"><div class="bn">S&P 500 (SPY)</div><div class="bv neu" id="bsp">—</div><div class="bs"><span id="bspy">YTD: —</span><span id="bspm">MTD: —</span></div></div>
       <div class="bi"><div class="bn">MSCI World (URTH)</div><div class="bv neu" id="bms">—</div><div class="bs"><span id="bmsy">YTD: —</span><span id="bmsm">MTD: —</span></div></div>
-      <div class="bi"><div class="bn">Total depositado</div><div class="bv neu">€8.099</div><div class="bs"><span>jul 2022 → hoy</span></div></div>
-      <div class="bi"><div class="bn">Inicio cartera</div><div class="bv neu">25/07/2022</div><div class="bs"><span>{round((date.today()-START_DATE).days/365.25,1)} años</span></div></div>
+      <div class="bi"><div class="bn">Depositado</div><div class="bv neu">€8.099</div><div class="bs"><span>desde jul 2022</span></div></div>
+      <div class="bi"><div class="bn">Cash en cuenta</div><div class="bv neu" id="kCash">—</div><div class="bs"><span>actualizar en script</span></div></div>
     </div>
   </div>
 </div>
+<div style="margin-bottom:14px"></div>
 
-<!-- TABLA POSICIONES -->
+<!-- TABLA -->
 <div class="pc">
-  <div class="pt">
-    Posiciones abiertas · {n} valores
-    <span class="ph">Yahoo Finance · python portfolio_update.py para actualizar</span>
-  </div>
+  <div class="pt">Posiciones abiertas · {n} valores <span class="ph">precios Yahoo Finance</span></div>
   <table>
     <thead><tr>
       <th>Compañía</th><th>Div.</th><th>Acc.</th>
-      <th>Coste medio (€)</th><th>Precio actual (€)</th>
-      <th>Valor (€)</th><th>P&amp;L (€)</th><th>P&amp;L %</th><th>Peso</th>
+      <th>Coste medio (€)</th><th>Precio nativo</th><th>Precio (€)</th>
+      <th>Valor (€)</th><th>P&amp;L posición (€)</th><th>P&amp;L %</th><th>Peso</th>
     </tr></thead>
     <tbody id="posB"></tbody>
   </table>
 </div>
 
-<div class="ft">Datos: <strong>Yahoo Finance (yfinance)</strong> · Divisas: EURUSD=X, EURGBP=X, EURDKK=X · Generado: {upd}</div>
+<div class="ft">Yahoo Finance (yfinance) · Divisas: EURUSD=X EURGBP=X EURDKK=X · {upd}</div>
 
 <script>
 const POS  = {pj};
@@ -530,71 +506,69 @@ const fp   = v => (v>=0?'+':'')+v.toFixed(2)+'%';
 const fp1  = v => (v>=0?'+':'')+v.toFixed(1)+'%';
 const fE   = v => (v>=0?'':'−')+'€'+fmt(Math.abs(v));
 const g    = id => document.getElementById(id);
-const sv   = (id,v) => {{const e=g(id);if(e)e.textContent=v;}};
-const cl   = v => v===null||v===undefined?'neu':v>=0?'pos':'neg';
+const sv   = (id,v) => {{ const e=g(id); if(e) e.textContent=v; }};
+const cl   = v => v==null?'neu':v>=0?'pos':'neg';
 
-// ── KPIs ──
-sv('kv','€'+fmt(PORT.account_val));
-g('kv-sub') && (g('kv-sub').textContent='cartera €'+fmt(PORT.total_val)+' + cash €'+fmt(PORT.cash));
-sv('kp',fE(PORT.total_pnl)); g('kp').className='vl '+cl(PORT.total_pnl);
-sv('ks',fp1(PORT.pnl_pct)+' sobre depositado');
-if(PORT.ytd!==null){{sv('ky',fp1(PORT.ytd));g('ky').className='vl '+cl(PORT.ytd);}}
-if(PORT.mtd!==null){{sv('km',fp1(PORT.mtd));g('km').className='vl '+cl(PORT.mtd);}}
-sv('ka',fp1(PORT.cagr)); g('ka').className='vl '+cl(PORT.cagr);
+// KPIs
+sv('kv', '€'+fmt(PORT.account_val));
+sv('kv-sub', 'cartera €'+fmt(PORT.open_val)+' + cash €'+fmt(PORT.cash));
+sv('kp', fE(PORT.total_pnl)); g('kp').className='vl '+cl(PORT.total_pnl);
+sv('ks', fp(PORT.pnl_pct)+' vs depositado');
+sv('kCash', '€'+fmt(PORT.cash,2));
+if(PORT.ytd!=null){{sv('ky',fp1(PORT.ytd));g('ky').className='vl '+cl(PORT.ytd);}}
+if(PORT.mtd!=null){{sv('km',fp1(PORT.mtd));g('km').className='vl '+cl(PORT.mtd);}}
+sv('ka', fp(PORT.cagr)); g('ka').className='vl '+cl(PORT.cagr);
 
 const TC = POS.reduce((s,p)=>s+p.cost_eur,0);
 const TV = POS.filter(p=>p.ok).reduce((s,p)=>s+(p.val_eur||0),0);
 
-// ── GRÁFICO HISTÓRICO DIARIO ──
-if(CHRT.dates && CHRT.dates.length) {{
-  const BENCH_COLORS = {{'S&P 500':'#fbbf24','MSCI World':'#34d399'}};
-  const datasets = [
-    {{
-      label:'Mi cartera',
-      data: CHRT.portfolio,
-      borderColor:'#4f8ef7',
-      backgroundColor:'rgba(79,142,247,0.08)',
-      borderWidth:2,
-      pointRadius:0,
-      fill:true,
-      tension:0.2,
-    }}
-  ];
-  Object.entries(CHRT.benchmarks||{{}}).forEach(([name,vals])=>{{
+// ── GRÁFICO HISTÓRICO ──
+if(CHRT.dates && CHRT.dates.length){{
+  const datasets = [{{
+    label:'Mi cartera',
+    data: CHRT.portfolio,
+    borderColor:'#4f8ef7',
+    backgroundColor:'rgba(79,142,247,0.07)',
+    borderWidth:2, pointRadius:0, fill:true, tension:0.1,
+  }}];
+
+  const benchEntries = Object.entries(CHRT.benchmarks||{{}});
+  benchEntries.forEach(([name,b])=>{{
     datasets.push({{
       label:name,
-      data:vals,
-      borderColor:BENCH_COLORS[name]||'#a78bfa',
+      data:b.values,
+      borderColor:b.color,
       backgroundColor:'transparent',
       borderWidth:1.5,
-      borderDash:[4,2],
-      pointRadius:0,
-      fill:false,
-      tension:0.2,
+      borderDash:[5,3],
+      pointRadius:0, fill:false, tension:0.1,
     }});
   }});
 
-  // Leyenda manual
+  // Leyenda
   g('chartLeg').innerHTML = datasets.map(d=>
-    `<span><span class="cleg-dot" style="background:${{d.borderColor}};height:${{d.borderDash?'2px':'3px'}}"></span>${{d.label}}</span>`
+    `<span><span class="cleg-line" style="background:${{d.borderColor}};height:${{d.borderDash?'2':'3'}}px"></span>${{d.label}}</span>`
   ).join('');
 
-  // Submuestrear labels para no sobrecargar el eje X
   const n = CHRT.dates.length;
-  const step = Math.max(1, Math.floor(n/12));
-  const labelsFmt = CHRT.dates.map((d,i) => i%step===0 ? d.slice(0,7) : '');
+  const step = Math.max(1, Math.floor(n/14));
 
-  new Chart(g('histC'), {{
+  new Chart(g('histC'),{{
     type:'line',
-    data:{{ labels: CHRT.dates, datasets }},
+    data:{{ labels:CHRT.dates, datasets }},
     options:{{
       responsive:true, maintainAspectRatio:false,
-      interaction:{{ mode:'index', intersect:false }},
+      interaction:{{mode:'index',intersect:false}},
       plugins:{{
         legend:{{display:false}},
         tooltip:{{
           callbacks:{{
-            label: ctx => {{ const d=(ctx.parsed.y-100).toFixed(1); return ` ${{ctx.dataset.label}}: ${{ctx.parsed.y.toFixed(1)}} (${{+d>=0?'+':''}}${{d}}%)`; }},
+            label: ctx => {{
+              const v = ctx.parsed.y;
+              const ret = (v - 100).toFixed(1);
+              const sign = ret >= 0 ? '+' : '';
+              return ` ${{ctx.dataset.label}}: ${{v.toFixed(1)}} (${{sign}}${{ret}}%)`;
+            }}
           }}
         }}
       }},
@@ -602,14 +576,13 @@ if(CHRT.dates && CHRT.dates.length) {{
         x:{{
           grid:{{color:'rgba(255,255,255,.04)'}},
           ticks:{{
-            color:'#6b7585', font:{{size:10}},
-            callback:(v,i) => labelsFmt[i] || null,
-            maxRotation:0,
+            color:'#6b7585', font:{{size:10}}, maxRotation:0,
+            callback:(v,i) => i%step===0 ? CHRT.dates[i].slice(0,7) : null
           }}
         }},
         y:{{
           grid:{{color:'rgba(255,255,255,.05)'}},
-          ticks:{{color:'#6b7585', font:{{size:10}}, callback:v=>v.toFixed(0)}},
+          ticks:{{color:'#6b7585',font:{{size:10}},callback:v=>v.toFixed(0)}},
           title:{{display:true,text:'Base 100',color:'#6b7585',font:{{size:10}}}}
         }}
       }}
@@ -617,25 +590,23 @@ if(CHRT.dates && CHRT.dates.length) {{
   }});
 }}
 
-// ── PIE CHART ──
-const sP = [...POS].sort((a,b)=>b.cost_eur-a.cost_eur);
-const pD = sP.map(p=>+(p.cost_eur/TC*100).toFixed(1));
-const pC = sP.map(p=>p.color);
-new Chart(g('pieC'),{{
-  type:'doughnut',
+// ── PIE ──
+const sP=[...POS].sort((a,b)=>b.cost_eur-a.cost_eur);
+const pD=sP.map(p=>+(p.cost_eur/TC*100).toFixed(1));
+const pC=sP.map(p=>p.color);
+new Chart(g('pieC'),{{type:'doughnut',
   data:{{labels:sP.map(p=>p.name.split(' ').slice(0,2).join(' ')),datasets:[{{data:pD,backgroundColor:pC,borderWidth:0,hoverOffset:5}}]}},
   options:{{responsive:true,maintainAspectRatio:false,cutout:'60%',
     plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{label:c=>` ${{c.label}}: ${{c.parsed.toFixed(1)}}%`}}}}}}}}
 }});
-g('pieLeg').innerHTML = sP.map((p,i)=>`<span><span class="ld" style="background:${{pC[i]}}"></span>${{p.name.split(' ').slice(0,2).join(' ')}} ${{pD[i]}}%</span>`).join('');
+g('pieLeg').innerHTML=sP.map((p,i)=>`<span><span class="ld" style="background:${{pC[i]}}"></span>${{p.name.split(' ').slice(0,2).join(' ')}} ${{pD[i]}}%</span>`).join('');
 
 // ── PNL CHART ──
-const wp = POS.filter(p=>p.ok&&p.pnl_eur!==undefined).sort((a,b)=>b.pnl_eur-a.pnl_eur);
-const ph = Math.max(260, wp.length*26+50);
-g('pnlW').style.height = ph+'px';
-g('pnlW').innerHTML = '<canvas id="pnlC" role="img" aria-label="P&L por posición"></canvas>';
-new Chart(g('pnlC'),{{
-  type:'bar',
+const wp=POS.filter(p=>p.ok&&p.pnl_eur!==undefined).sort((a,b)=>b.pnl_eur-a.pnl_eur);
+const ph=Math.max(260,wp.length*26+50);
+g('pnlW').style.height=ph+'px';
+g('pnlW').innerHTML='<canvas id="pnlC"></canvas>';
+new Chart(g('pnlC'),{{type:'bar',
   data:{{labels:wp.map(p=>p.name.split(' ').slice(0,2).join(' ')),
     datasets:[{{data:wp.map(p=>+p.pnl_eur.toFixed(2)),
       backgroundColor:wp.map(p=>p.pnl_eur>=0?'rgba(52,211,153,.75)':'rgba(248,113,113,.75)'),
@@ -649,58 +620,55 @@ new Chart(g('pnlC'),{{
   }}
 }});
 
-// ── BARRAS COMPARATIVAS ──
+// ── COMPARATIVA ──
 const spY=BENCH[0]?.ytd, msY=BENCH[1]?.ytd;
 const bars=[
-  {{l:'Mi cartera · total desde inicio', v:PORT.pnl_pct, c:'#4f8ef7'}},
-  {{l:'Mi cartera · CAGR anualizada',    v:PORT.cagr,    c:'#a78bfa'}},
-  ...(PORT.ytd!==null?[{{l:'Mi cartera · YTD', v:PORT.ytd, c:'#2dd4bf'}}]:[]),
+  {{l:'Mi cartera · REAL total', v:PORT.pnl_pct, c:'#4f8ef7'}},
+  {{l:'Mi cartera · CAGR anualizado', v:PORT.cagr, c:'#a78bfa'}},
+  ...(PORT.ytd!=null?[{{l:'Posiciones abiertas · YTD', v:PORT.ytd, c:'#2dd4bf'}}]:[]),
   ...(spY!=null?[{{l:'S&P 500 (SPY) · YTD', v:spY, c:'#fbbf24'}}]:[]),
   ...(msY!=null?[{{l:'MSCI World (URTH) · YTD', v:msY, c:'#34d399'}}]:[]),
 ];
-const mx = Math.max(...bars.map(b=>Math.abs(b.v)),1);
-g('compB').innerHTML = bars.map(b=>`
-  <div>
-    <div class="bh">
-      <span class="bn2">${{b.l}}</span>
-      <span class="bvl" style="color:${{b.v>=0?'var(--gr)':'var(--rd)'}}">${{fp1(b.v)}}</span>
-    </div>
-    <div class="btrack"><div class="bfill" style="width:${{Math.max(Math.abs(b.v)/mx*100,2)}}%;background:${{b.c}}"></div></div>
-  </div>`).join('');
+const mx=Math.max(...bars.map(b=>Math.abs(b.v)),1);
+g('compB').innerHTML=bars.map(b=>`
+  <div><div class="bh">
+    <span class="bn2">${{b.l}}</span>
+    <span class="bvl" style="color:${{b.v>=0?'var(--gr)':'var(--rd)'}}">${{fp1(b.v)}}</span>
+  </div><div class="btrack"><div class="bfill" style="width:${{Math.max(Math.abs(b.v)/mx*100,2)}}%;background:${{b.c}}"></div></div></div>`
+).join('');
 
 // ── BENCHMARKS ──
-const B = BENCH;
-if(B[0]?.price){{sv('bsp','$'+fmt(B[0].price,2));}}
-if(B[1]?.price){{sv('bms','$'+fmt(B[1].price,2));}}
-[[B[0]?.ytd,'bspy'],[B[0]?.mtd,'bspm'],[B[1]?.ytd,'bmsy'],[B[1]?.mtd,'bmsm']].forEach(([v,id])=>{{
+const B=BENCH;
+if(B[0]?.price) sv('bsp','$'+fmt(B[0].price,2));
+if(B[1]?.price) sv('bms','$'+fmt(B[1].price,2));
+[[B[0]?.ytd,'bspy','YTD'],[B[0]?.mtd,'bspm','MTD'],
+ [B[1]?.ytd,'bmsy','YTD'],[B[1]?.mtd,'bmsm','MTD']].forEach(([v,id,lbl])=>{{
   if(v!=null){{
-    const e=g(id); if(!e)return;
-    e.textContent=(id.includes('y')?'YTD: ':'MTD: ')+fp1(v);
+    const e=g(id); if(!e) return;
+    e.textContent=lbl+': '+fp1(v);
     e.style.color=v>=0?'var(--gr)':'var(--rd)';
   }}
 }});
 
-// ── TABLA POSICIONES ──
-const sr = [...POS].sort((a,b)=>b.cost_eur-a.cost_eur);
-g('posB').innerHTML = sr.map((p,i)=>{{
-  const hp = p.ok && p.val_eur !== undefined;
-  const w  = hp && TV>0 ? p.val_eur/TV*100 : p.cost_eur/TC*100;
-  const pc = hp ? (p.pnl_eur>=0?'pos':'neg') : '';
-  // Precio nativo con divisa
-  const priceNative = hp ? `${{fmt(p.price, p.cur==='GBX'?1:p.cur==='DKK'?2:3)}} ${{p.cur}}` : '—';
+// ── TABLA ──
+const sr=[...POS].sort((a,b)=>b.cost_eur-a.cost_eur);
+g('posB').innerHTML=sr.map((p,i)=>{{
+  const hp=p.ok&&p.val_eur!==undefined;
+  const w=hp&&TV>0?p.val_eur/TV*100:p.cost_eur/TC*100;
+  const pc=hp?(p.pnl_eur>=0?'pos':'neg'):'';
+  const priceNat = hp ? fmt(p.price, p.cur==='GBX'?1:p.cur==='DKK'?2:3)+' '+p.cur : '—';
   return `<tr>
     <td><div class="pn">${{p.name}}</div><div class="pk">${{p.ticker}}</div></td>
     <td><span class="badge">${{p.cur}}</span></td>
     <td class="mo" style="color:var(--mu)">${{p.qty}}</td>
     <td class="mo">€${{fmt(p.cost_eur/p.qty,2)}}</td>
-    <td class="mo">${{hp?'<span style=\"color:var(--tx)\">€'+fmt(p.price_eur,3)+'</span><br><span style=\"font-size:10px;color:var(--mu)\">'+fmt(p.price, p.cur==='GBX'?1:p.cur==='DKK'?2:3)+' '+p.cur+'</span>':'—'}}</td>
+    <td class="mo" style="font-size:11px;color:var(--mu)">${{priceNat}}</td>
+    <td class="mo">${{hp?'€'+fmt(p.price_eur,3):'—'}}</td>
     <td class="mo">${{hp?'€'+fmt(p.val_eur):'—'}}</td>
     <td class="mo ${{pc}}" style="font-weight:600">${{hp?fE(p.pnl_eur):'—'}}</td>
     <td class="mo ${{pc}}">${{hp?fp(p.pnl_pct):'—'}}</td>
-    <td><div class="wb">
-      <span style="font-size:11px;color:var(--mu)">${{w.toFixed(1)}}%</span>
-      <div class="wbar" style="width:${{Math.max(w*2.2,2)}}px;background:${{p.color}}"></div>
-    </div></td>
+    <td><div class="wb"><span style="font-size:11px;color:var(--mu)">${{w.toFixed(1)}}%</span>
+      <div class="wbar" style="width:${{Math.max(w*2.2,2)}}px;background:${{p.color}}"></div></div></td>
   </tr>`;
 }}).join('');
 </script></body></html>"""
@@ -711,9 +679,6 @@ g('posB').innerHTML = sr.map((p,i)=>{{
 
 
 if __name__ == "__main__":
-    try:
-        import yfinance
-    except ImportError:
-        print("❌ Ejecuta: pip install yfinance")
-        exit(1)
+    try: import yfinance, pandas
+    except ImportError: print("❌ pip install yfinance pandas"); exit(1)
     main()
